@@ -60,6 +60,28 @@ def find_hactool(explicit: Path | None) -> Path | None:
     return None
 
 
+def build_hactool() -> Path:
+    """Clone and build SciresM/hactool into tooling/hactool if not already installed."""
+    hactool_dir = ROOT / "tooling" / "hactool"
+    hactool_bin = hactool_dir / "hactool"
+    if hactool_bin.is_file() and os.access(hactool_bin, os.X_OK):
+        return hactool_bin
+    hactool_dir.parent.mkdir(parents=True, exist_ok=True)
+    if not (hactool_dir / ".git").exists():
+        run_step(
+            "Cloning SciresM/hactool",
+            ["git", "clone", "--depth", "1", "--recursive", "https://github.com/SciresM/hactool.git", str(hactool_dir)],
+        )
+    cfg = hactool_dir / "config.mk"
+    if not cfg.is_file():
+        shutil.copyfile(hactool_dir / "config.mk.template", cfg)
+    jobs = str(os.cpu_count() or 4)
+    run_step("Building hactool", ["make", "-C", str(hactool_dir), f"-j{jobs}"])
+    if not hactool_bin.is_file():
+        raise SystemExit(f"ERROR: hactool build succeeded but binary missing at {hactool_bin}")
+    return hactool_bin
+
+
 def check_prereqs(
     need_hactool: bool, hactool_arg: Path | None, need_mc: bool, need_llvm: bool
 ) -> tuple[list[str], Path | None]:
@@ -78,8 +100,8 @@ def check_prereqs(
     ):
         missing.append("ffmpeg (`brew install ffmpeg`)")
     hactool = find_hactool(hactool_arg)
-    if need_hactool and not hactool:
-        missing.append("hactool (install hactool on PATH or pass --hactool /path/to/hactool)")
+    if need_hactool and hactool_arg and not hactool:
+        missing.append(f"hactool not found at {hactool_arg}")
     return missing, hactool
 
 
@@ -192,7 +214,8 @@ def main() -> int:
             raise SystemExit("ERROR: --update <totk_update_1.2.1.nsp> is required to extract v1.2.1 RomFS.")
         if not args.keys.is_file():
             raise SystemExit(f"ERROR: prod.keys not found at {args.keys} (pass --keys).")
-        assert hactool is not None
+        if hactool is None:
+            hactool = build_hactool()
         run_step(
             "Extracting and merging TOTK v1.2.1 RomFS",
             [

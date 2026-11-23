@@ -44,8 +44,8 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 ## Requirements
 
-- **Apple Silicon Mac** running macOS with Xcode Command Line Tools and Homebrew.
-- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1) running natively** via [`MacNativeGames`](https://github.com/ly05010419/MacNativeGames) (`totk-native` v1.2.1 runtime inputs already set up locally).
+- **Apple Silicon Mac** running macOS with Xcode Command Line Tools (`xcode-select --install`) and Homebrew.
+- ***The Legend of Zelda: Tears of the Kingdom***: your own legally dumped base game (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus unpacked Switch firmware NCAs if your base image is `.nsp` rather than `.xci`)*.
 - ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)** installed locally.
 
 ---
@@ -54,25 +54,39 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`).
 
-1. **Install Homebrew & Python dependencies:**
+1. **Clone the repository and install Homebrew dependencies:**
    ```bash
-   brew install opus libvpx ffmpeg
-   make dependencies
+   git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
+   cd TOTK-minecraft-overlay
+   brew install opus libvpx ffmpeg llvm
    ```
    - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
    - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
+   - `llvm` is used during NSO rewrite verification.
 
-2. **Extract Minecraft assets (local, gitignored):**
+2. **Run the automated one-command setup:**
    ```bash
-   .venv/bin/python tools/extract_mc_assets.py
+   make setup-v121 \
+     BASE_ROM=/path/to/totk_base.xci \
+     UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
+     KEYS=/path/to/prod.keys
    ```
-   This auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` version (preferring stable releases over snapshots) and populates `assets/mc/`. Override with `MINECRAFT_DIR` or `--jar` / `--index` if needed.
+   *(If `BASE_ROM` is an `.nsp` instead of `.xci`, also pass `FIRMWARE=/path/to/firmware_ncas` for Switch shared fonts. `KEYS` defaults to `~/Library/Application Support/Ryujinx/system/prod.keys` if omitted. You can also pass `MC_DIR=...` or `MC_JAR=...` to override the auto-discovered Minecraft `1.21+` / `26.x+` installation.)*
 
-3. **Build the v1.2.1 native runtime:**
+   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically:
+   - Creates `.venv` and installs Python dependencies (`make dependencies`).
+   - Builds `hactool` into `tooling/hactool/` if not already installed.
+   - Extracts TOTK v1.2.1 ExeFS, merges base + v1.2.1 RomFS, and extracts Switch shared fonts.
+   - Rewrites and verifies the v1.2.1 NSOs (`rewritten/v121`).
+   - Auto-discovers your newest Minecraft `1.21+` / `26.x+` JAR and extracts textures, fonts, `en_us.json`, and 48 kHz WAVs into `assets/mc/`.
+   - Builds `build/totk-native-v121` (`make runtime-v121`).
+
+   *(Re-running `make setup-v121` safely skips any stage whose outputs already exist.)*
+
+3. **Launch the game with the Minecraft overlay:**
    ```bash
-   make runtime-v121
+   make run-v121
    ```
-   *(Builds `build/totk-native-v121`, `build/pso_manifest.tsv`, and `build/pso_title.tsv` using your existing native TOTK v1.2.1 runtime inputs.)*
 
 4. **Launch:**
    ```bash
