@@ -68,9 +68,3 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 The [`.gitignore`](.gitignore) file explicitly excludes all copyrighted, extracted, or generated artifacts:
 - `assets/mc/` (extracted Minecraft textures, sounds, strings, and manifest)
 - `extracted/`, `rewritten/`, `build/`, `user-data/`, `*.keys`, `analysis/`, `tooling/`, `.venv/`
-
----
-
-## Upstream & References
-
-- **Recompiler (`d2r`)**: https://github.com/jhaizhou-ops/d2r-mobile
