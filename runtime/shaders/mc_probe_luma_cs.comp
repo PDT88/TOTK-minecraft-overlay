@@ -1,0 +1,70 @@
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer EnvOut {
+    vec4 env_out;
+};
+
+layout(set = 0, binding = 1, std140) uniform WorldUniforms {
+    vec4  vp_rows[4];
+    vec4  tint_mul;
+    float canvas_w;
+    float canvas_h;
+    float time_sec;
+    uint  ignore_gbuf;
+    uint  target_is_linear;
+    uint  pad0;
+    uint  pad1;
+    uint  pad2;
+} u;
+
+layout(set = 0, binding = 2) uniform sampler2D sc;
+
+shared vec4 s_acc[64];
+
+vec3 linear_to_srgb(vec3 c) {
+    vec3 lo = c * 12.92;
+    vec3 hi = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
+    return mix(lo, hi, greaterThan(c, vec3(0.0031308)));
+}
+
+void main() {
+    uint tid = gl_LocalInvocationIndex;
+    ivec2 sz = textureSize(sc, 0);
+    vec4 val = vec4(0.0);
+    if (sz.x > 4 && sz.y > 4 && tid < 64u) {
+        uint gx = tid & 7u;
+        uint gy = tid >> 3u;
+        float u0 = 0.14 + (float(gx) / 7.0) * 0.72;
+        float v0 = 0.16 + (float(gy) / 7.0) * 0.56;
+        ivec2 px = ivec2(clamp(u0 * float(sz.x), 0.0, float(sz.x - 1)),
+                         clamp(v0 * float(sz.y), 0.0, float(sz.y - 1)));
+        vec3 c = max(texelFetch(sc, px, 0).rgb, vec3(0.0));
+        if (u.target_is_linear != 0u) {
+            c = linear_to_srgb(clamp(c, 0.0, 2.0));
+        }
+        c = clamp(c, 0.0, 1.0);
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        val = vec4(c, l);
+    }
+    s_acc[tid] = val;
+    memoryBarrierShared();
+    barrier();
+    for (uint s = 32u; s > 0u; s >>= 1u) {
+        if (tid < s) s_acc[tid] += s_acc[tid + s];
+        memoryBarrierShared();
+        barrier();
+    }
+    if (tid == 0u) {
+        vec4 avg = s_acc[0] / 64.0;
+        float target_exp = clamp(0.32 + avg.w * 1.25, 0.44, 0.92);
+        float mx = max(max(avg.x, avg.y), max(avg.z, 0.001));
+        vec3 tint = mix(vec3(1.0), clamp(avg.xyz / mx, 0.68, 1.0), 0.18);
+        vec4 prev = env_out;
+        vec4 next = vec4(tint, target_exp);
+        if (prev.w >= 0.20 && prev.w <= 1.20) {
+            next = mix(prev, next, 0.18);
+        }
+        env_out = next;
+    }
+}
