@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Extract authentic Minecraft Java 1.21.11 textures, font widths, en_us strings,
+"""Extract authentic Minecraft Java (1.21+) textures, font widths, en_us strings,
 and 48 kHz 16-bit PCM WAV sounds into assets/mc/ for totk-pc-recomp.
 
 Reads:
-  - Client JAR: %APPDATA%\\.minecraft\\versions\\1.21.11\\1.21.11.jar
+  - Client JAR: auto-discovered newest 1.21+ / 26.x+ JAR under %APPDATA%\\.minecraft\\versions\\
     (configurable via --jar or MINECRAFT_JAR)
   - Asset objects & index JSON: %APPDATA%\\.minecraft\\assets\\objects + indexes\\<id>.json
     (auto-resolved from <jar_dir>\\<version>.json or configurable via --assets-dir / --index)
@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import io
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -571,13 +573,40 @@ def default_minecraft_dir() -> Path:
     return Path.home() / "AppData" / "Roaming" / ".minecraft"
 
 
+def _parse_mc_version(name: str) -> Optional[Tuple[bool, Tuple[int, ...], int]]:
+    m = re.match(r"^(\d+)\.(\d+)(?:\.(\d+))?(.*)$", name)
+    if not m:
+        return None
+    major, minor = int(m.group(1)), int(m.group(2))
+    patch = int(m.group(3)) if m.group(3) is not None else 0
+    suffix = m.group(4) or ""
+    is_supported = (major == 1 and minor >= 21) or (major >= 26)
+    is_release = 1 if suffix == "" else 0
+    return (is_supported, (major, minor, patch), is_release)
+
+
 def resolve_jar_path(cli_jar: Optional[Path]) -> Path:
     if cli_jar:
         return cli_jar
     env_jar = os.environ.get("MINECRAFT_JAR")
     if env_jar:
         return Path(env_jar)
-    return default_minecraft_dir() / "versions" / DEFAULT_VERSION / f"{DEFAULT_VERSION}.jar"
+    versions_dir = default_minecraft_dir() / "versions"
+    candidates: List[Tuple[Tuple[int, Tuple[int, ...]], Path]] = []
+    if versions_dir.is_dir():
+        for vdir in versions_dir.iterdir():
+            if not vdir.is_dir():
+                continue
+            parsed = _parse_mc_version(vdir.name)
+            if not parsed or not parsed[0]:
+                continue
+            jar = vdir / f"{vdir.name}.jar"
+            if jar.is_file():
+                candidates.append(((parsed[2], parsed[1]), jar))
+    if candidates:
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1]
+    return versions_dir / DEFAULT_VERSION / f"{DEFAULT_VERSION}.jar"
 
 
 def resolve_assets_and_index(
@@ -841,11 +870,33 @@ def extract_assets(
 
         for rel_path in REQUIRED_TEXTURES:
             jar_member = TEX_OVERRIDES.get(rel_path, f"assets/minecraft/{rel_path}")
-            if jar_member not in jar_names:
-                raise FileNotFoundError(f"Missing texture in JAR: {jar_member} (for {rel_path})")
+            alt_members = {
+                "textures/entity/shield_base_nopattern.png": "assets/minecraft/textures/entity/shield/shield_base_nopattern.png",
+                "textures/entity/shield_base.png": "assets/minecraft/textures/entity/shield/shield_base.png",
+            }
+            if jar_member not in jar_names and rel_path in alt_members and alt_members[rel_path] in jar_names:
+                jar_member = alt_members[rel_path]
+
             dst = out_dir / rel_path
             dst.parent.mkdir(parents=True, exist_ok=True)
-            data = zf.read(jar_member)
+            if jar_member in jar_names:
+                data = zf.read(jar_member)
+            elif rel_path == "textures/entity/bed/red.png":
+                head_m = "assets/minecraft/textures/block/red_bed_head_up.png"
+                foot_m = "assets/minecraft/textures/block/red_bed_foot_up.png"
+                if head_m not in jar_names or foot_m not in jar_names:
+                    raise FileNotFoundError(f"Missing texture in JAR: {jar_member} (for {rel_path})")
+                canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+                with Image.open(io.BytesIO(zf.read(head_m))) as him:
+                    canvas.paste(him.convert("RGBA"), (6, 6))
+                with Image.open(io.BytesIO(zf.read(foot_m))) as fim:
+                    canvas.paste(fim.convert("RGBA"), (6, 28))
+                buf = io.BytesIO()
+                canvas.save(buf, format="PNG")
+                data = buf.getvalue()
+                jar_member = "composed:block/red_bed_{head,foot}_up.png"
+            else:
+                raise FileNotFoundError(f"Missing texture in JAR: {jar_member} (for {rel_path})")
             dst.write_bytes(data)
             with Image.open(dst) as im:
                 w, h = im.size
@@ -913,7 +964,7 @@ def extract_assets(
 
     manifest = {
         "format_version": 1,
-        "minecraft_version": DEFAULT_VERSION,
+        "minecraft_version": jar_path.stem,
         "asset_index": index_id,
         "jar_path": str(jar_path),
         "audio_decoder": str(ffmpeg_exe) if ffmpeg_exe else "soundfile+numpy",
@@ -944,7 +995,7 @@ def mirror_directory(src: Path, dst: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--jar", type=Path, help="Path to Minecraft 1.21.11 client JAR (or set MINECRAFT_JAR)")
+    parser.add_argument("--jar", type=Path, help="Path to Minecraft 1.21+ client JAR (or set MINECRAFT_JAR)")
     parser.add_argument("--assets-dir", type=Path, help="Path to .minecraft/assets directory")
     parser.add_argument("--index", type=Path, help="Path to Minecraft asset index JSON (e.g. 29.json)")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT_DIR, help="Output assets/mc directory")

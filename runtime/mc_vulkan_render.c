@@ -165,6 +165,7 @@ typedef struct {
 
 static struct {
     int                           initialized;
+    int                           init_failed;
     PlatMutex                     mu;
     PFN_vkCmdPushDescriptorSetKHR push;
 
@@ -2238,7 +2239,7 @@ void mc_vulkan_render_world(VkCommandBuffer cb,
                             VkImageView gbuf_depth_view) {
     if (!cb || !color_image || width == 0 || height == 0 || !runtime_mc_active()) return;
     mc_vulkan_render_init();
-    if (!g_r.initialized) return;
+    if (!__atomic_load_n(&g_r.initialized, __ATOMIC_ACQUIRE)) return;
 
     VkCtx *c = vk_ctx();
     if (!c) return;
@@ -2525,7 +2526,7 @@ static uint32_t prepare_paperdoll_verts(VkCtx *c, uint32_t slot, const McRenderS
 void mc_vulkan_render_gui_pre(VkCommandBuffer cb, uint32_t slot) {
     if (!cb || !runtime_mc_active()) return;
     mc_vulkan_render_init();
-    if (!g_r.initialized) return;
+    if (!__atomic_load_n(&g_r.initialized, __ATOMIC_ACQUIRE)) return;
 
     VkCtx *c = vk_ctx();
     if (!c) return;
@@ -2973,7 +2974,7 @@ static void build_gui_mesh(uint32_t slot, const McRenderSnapshot *s, McMesh2D *m
 
 static int prepare_gui_slot(uint32_t slot, VkFormat fmt, McMesh2D *out_m,
                             const McGuiPsoEntry **out_psos) {
-    if (!g_r.initialized || !runtime_mc_active()) return 0;
+    if (!__atomic_load_n(&g_r.initialized, __ATOMIC_ACQUIRE) || !runtime_mc_active()) return 0;
     VkCtx *c = vk_ctx();
     if (!c) return 0;
 
@@ -3023,7 +3024,7 @@ void mc_vulkan_render_gui(VkCommandBuffer cb,
                           uint32_t slot) {
     if (!cb || !dst_view || target_w == 0 || target_h == 0 || !runtime_mc_active()) return;
     mc_vulkan_render_init();
-    if (!g_r.initialized) return;
+    if (!__atomic_load_n(&g_r.initialized, __ATOMIC_ACQUIRE)) return;
 
     slot %= MC_ALL_SLOTS;
     McMesh2D m = {0};
@@ -3104,13 +3105,32 @@ void mc_vulkan_render_gui(VkCommandBuffer cb,
  * One-Time Renderer Initialization & Shutdown
  * ========================================================================= */
 
+static void destroy_init_handles_locked(VkCtx *c) {
+    if (c && c->device) {
+        if (g_r.sm_luma)     { vkDestroyShaderModule(c->device, g_r.sm_luma, NULL);     g_r.sm_luma = VK_NULL_HANDLE; }
+        if (g_r.sm_world_vs) { vkDestroyShaderModule(c->device, g_r.sm_world_vs, NULL); g_r.sm_world_vs = VK_NULL_HANDLE; }
+        if (g_r.sm_world_fs) { vkDestroyShaderModule(c->device, g_r.sm_world_fs, NULL); g_r.sm_world_fs = VK_NULL_HANDLE; }
+        if (g_r.sm_gui_vs)   { vkDestroyShaderModule(c->device, g_r.sm_gui_vs, NULL);   g_r.sm_gui_vs = VK_NULL_HANDLE; }
+        if (g_r.sm_gui_fs)   { vkDestroyShaderModule(c->device, g_r.sm_gui_fs, NULL);   g_r.sm_gui_fs = VK_NULL_HANDLE; }
+        if (g_r.pl_luma)     { vkDestroyPipelineLayout(c->device, g_r.pl_luma, NULL);   g_r.pl_luma = VK_NULL_HANDLE; }
+        if (g_r.pl_world)    { vkDestroyPipelineLayout(c->device, g_r.pl_world, NULL);  g_r.pl_world = VK_NULL_HANDLE; }
+        if (g_r.pl_gui)      { vkDestroyPipelineLayout(c->device, g_r.pl_gui, NULL);    g_r.pl_gui = VK_NULL_HANDLE; }
+        if (g_r.dsl_luma)    { vkDestroyDescriptorSetLayout(c->device, g_r.dsl_luma, NULL);  g_r.dsl_luma = VK_NULL_HANDLE; }
+        if (g_r.dsl_world)   { vkDestroyDescriptorSetLayout(c->device, g_r.dsl_world, NULL); g_r.dsl_world = VK_NULL_HANDLE; }
+        if (g_r.dsl_gui)     { vkDestroyDescriptorSetLayout(c->device, g_r.dsl_gui, NULL);   g_r.dsl_gui = VK_NULL_HANDLE; }
+    }
+    g_r.push = NULL;
+    __atomic_store_n(&g_r.init_failed, 1, __ATOMIC_RELEASE);
+}
+
 void mc_vulkan_render_init(void) {
     if (__atomic_load_n(&g_r.initialized, __ATOMIC_ACQUIRE)) return;
+    if (__atomic_load_n(&g_r.init_failed, __ATOMIC_ACQUIRE)) return;
     VkCtx *c = vk_ctx();
     if (!c) return;
 
     plat_mutex_lock(&g_r.mu);
-    if (g_r.initialized) {
+    if (g_r.initialized || g_r.init_failed) {
         plat_mutex_unlock(&g_r.mu);
         return;
     }
@@ -3118,6 +3138,7 @@ void mc_vulkan_render_init(void) {
     g_r.push = (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(c->device, "vkCmdPushDescriptorSetKHR");
     if (!g_r.push) {
         rt_log("[mc-vk] FATAL: vkCmdPushDescriptorSetKHR unavailable");
+        destroy_init_handles_locked(c);
         plat_mutex_unlock(&g_r.mu);
         return;
     }
@@ -3146,6 +3167,7 @@ void mc_vulkan_render_init(void) {
     g_r.dsl_gui   = make_push_dsl(c, b_gui,   4);
     if (!g_r.dsl_luma || !g_r.dsl_world || !g_r.dsl_gui) {
         rt_log("[mc-vk] FATAL: failed to create descriptor set layouts");
+        destroy_init_handles_locked(c);
         plat_mutex_unlock(&g_r.mu);
         return;
     }
@@ -3155,6 +3177,7 @@ void mc_vulkan_render_init(void) {
     g_r.pl_gui   = make_pipe_layout(c, g_r.dsl_gui);
     if (!g_r.pl_luma || !g_r.pl_world || !g_r.pl_gui) {
         rt_log("[mc-vk] FATAL: failed to create pipeline layouts");
+        destroy_init_handles_locked(c);
         plat_mutex_unlock(&g_r.mu);
         return;
     }
@@ -3167,6 +3190,7 @@ void mc_vulkan_render_init(void) {
     g_r.sm_gui_fs   = make_shader(c, mc_gui_fs_spv,        sizeof mc_gui_fs_spv);
     if (!g_r.sm_luma || !g_r.sm_world_vs || !g_r.sm_world_fs || !g_r.sm_gui_vs || !g_r.sm_gui_fs) {
         rt_log("[mc-vk] FATAL: failed to create shader modules");
+        destroy_init_handles_locked(c);
         plat_mutex_unlock(&g_r.mu);
         return;
     }
@@ -3277,6 +3301,7 @@ void mc_vulkan_render_init(void) {
 void mc_vulkan_render_shutdown(void) {
     VkCtx *c = vk_ctx();
     plat_mutex_lock(&g_r.mu);
+    __atomic_store_n(&g_r.init_failed, 0, __ATOMIC_RELEASE);
     if (!g_r.initialized) {
         plat_mutex_unlock(&g_r.mu);
         return;

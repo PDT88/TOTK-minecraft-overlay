@@ -9,7 +9,7 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* (**v1.2.1**) and *Minecraft: Java Edition* (`1.21.11`) to extract assets and build/run locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* (**v1.2.1**) and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) to extract assets and build/run locally.
 
 ---
 
@@ -51,7 +51,7 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
    ```powershell
    python tools\extract_mc_assets.py
    ```
-   This reads from `%APPDATA%\.minecraft\versions\1.21.11\1.21.11.jar` and `%APPDATA%\.minecraft\assets\` (overrideable via `--jar`, `--assets-dir`, `--index`, or `MINECRAFT_JAR`) and populates `assets\mc\`.
+   This auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` JAR under `%APPDATA%\.minecraft\versions\` (preferring stable releases over snapshots; overrideable via `--jar`, `--assets-dir`, `--index`, or `MINECRAFT_JAR`) and populates `assets\mc\`.
 
 3. **Provide TOTK v1.2.1 base files & build**:
    Follow [`docs/building.md`](docs/building.md) to build `totk-pc-recomp` against your legally dumped **TOTK v1.2.1** game files.
