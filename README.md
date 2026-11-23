@@ -124,3 +124,9 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 - [`.gitignore`](.gitignore) and [`tools/check_content.py`](tools/check_content.py) enforce that no Nintendo game files, binaries (`*.exe`, `*.dll`), or extracted Minecraft assets (`assets/mc/`) are committed.
 - Project code is under the [MIT License](LICENSE); third-party components keep their respective licenses ([THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+
+---
+
+## Upstream & References
+
+- **Base TOTK Native Runtime (`totk-pc-recomp`)**: https://github.com/valentderah/totk-pc-recomp
