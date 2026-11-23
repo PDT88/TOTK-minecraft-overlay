@@ -1,6 +1,6 @@
 # TOTK Minecraft Overlay (`TOTK-minecraft-overlay`)
 
-A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into a native macOS ARM64 port of *The Legend of Zelda: Tears of the Kingdom* (`totk-native`), along with a full specification for porting the overlay to Windows (`totk-pc-recomp`).
+A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into a native macOS ARM64 port of *The Legend of Zelda: Tears of the Kingdom* (`totk-native`).
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
@@ -34,7 +34,6 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 | **Metal Renderer** | [`runtime/mc_metal_render.h`](runtime/mc_metal_render.h), [`runtime/mc_metal_render.m`](runtime/mc_metal_render.m) | Multi-pass Metal rendering: 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
 | **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Auto-discovers installed Minecraft Java `1.21+` versions and extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs into `assets/mc/` (gitignored). |
 | **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
-| **Windows Port Spec** | [`WINDOWS_MC_MOD_SPEC.md`](WINDOWS_MC_MOD_SPEC.md) | Full specification for porting the overlay to Windows (`valentderah/totk-pc-recomp` + Vulkan). |
 
 ---
 
@@ -73,4 +72,3 @@ The [`.gitignore`](.gitignore) file explicitly excludes all copyrighted, extract
 ## Upstream & References
 
 - **Recompiler (`d2r`)**: https://github.com/jhaizhou-ops/d2r-mobile
-- **Windows Target Runtime (`totk-pc-recomp`)**: https://github.com/valentderah/totk-pc-recomp
