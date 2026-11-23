@@ -45,7 +45,7 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 ## Requirements
 
 - **Apple Silicon Mac** running macOS with Xcode Command Line Tools (`xcode-select --install`) and Homebrew.
-- ***The Legend of Zelda: Tears of the Kingdom***: your own legally dumped base game (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus unpacked Switch firmware NCAs if your base image is `.nsp` rather than `.xci`)*.
+- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1)** running natively via [MacNativeGames](https://github.com/ly05010419/MacNativeGames).
 - ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)** installed locally.
 
 ---
@@ -62,33 +62,16 @@ The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settin
    ```
    - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
    - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
-   - `llvm` is used during NSO rewrite verification.
+   - `llvm` is used during build verification.
 
-2. **Run the automated one-command setup:**
+2. **Check prerequisites and run the automated setup:**
    ```bash
-   make setup-v121 \
-     BASE_ROM=/path/to/totk_base.xci \
-     UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
-     KEYS=/path/to/prod.keys
+   python3 scripts/setup_v121.py --check-only
+   make setup-v121
    ```
-   *(If `BASE_ROM` is an `.nsp` instead of `.xci`, also pass `FIRMWARE=/path/to/firmware_ncas` for Switch shared fonts. `KEYS` defaults to `~/Library/Application Support/Ryujinx/system/prod.keys` if omitted. You can also pass `MC_DIR=...` or `MC_JAR=...` to override the auto-discovered Minecraft `1.21+` / `26.x+` installation.)*
+   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv`, auto-discovers your newest local Minecraft: Java Edition `1.21+` / `26.x+` installation (override with `MC_DIR=...` or `MC_JAR=...`) to populate `assets/mc/`, and builds `build/totk-native-v121` (`make runtime-v121`), safely skipping any stage whose outputs already exist. *(Run `python3 scripts/setup_v121.py --help` for optional path flags.)*
 
-   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically:
-   - Creates `.venv` and installs Python dependencies (`make dependencies`).
-   - Builds `hactool` into `tooling/hactool/` if not already installed.
-   - Extracts TOTK v1.2.1 ExeFS, merges base + v1.2.1 RomFS, and extracts Switch shared fonts.
-   - Rewrites and verifies the v1.2.1 NSOs (`rewritten/v121`).
-   - Auto-discovers your newest Minecraft `1.21+` / `26.x+` JAR and extracts textures, fonts, `en_us.json`, and 48 kHz WAVs into `assets/mc/`.
-   - Builds `build/totk-native-v121` (`make runtime-v121`).
-
-   *(Re-running `make setup-v121` safely skips any stage whose outputs already exist.)*
-
-3. **Launch the game with the Minecraft overlay:**
-   ```bash
-   make run-v121
-   ```
-
-4. **Launch:**
+3. **Launch:**
    ```bash
    make run-v121
    ```
