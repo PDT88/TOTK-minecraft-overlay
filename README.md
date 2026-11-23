@@ -44,27 +44,57 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 ## Setup & Usage (macOS)
 
-1. **Install Homebrew & Python dependencies:**
-   ```bash
-   brew install opus libvpx ffmpeg
-   make dependencies
-   ```
-   `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`, and `ffmpeg` is used to decode Minecraft `.ogg` audio to 48 kHz `.wav`.
+The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`).
 
-2. **Extract Minecraft assets (local, gitignored):**
+1. **Install Homebrew dependencies & `hactool`:**
    ```bash
-   .venv/bin/python tools/extract_mc_assets.py
+   brew install opus libvpx ffmpeg llvm
    ```
-   This auto-discovers your newest installed Minecraft: Java Edition `1.21+` version (including `1.21.x` and `26.x+`, preferring stable releases over snapshots) and populates `assets/mc/`. You can also set `MINECRAFT_DIR` or pass `--jar` / `--index` to target a specific version or directory.
+   - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
+   - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
+   - `llvm` is used by `scripts/verify_rewrites.py` during rewrite validation.
+   - `hactool` is required once to merge the v1.2.1 RomFS update (place `hactool` on `PATH`, at `tooling/hactool`, or pass `--hactool`).
 
-3. **Provide TOTK v1.2.1 base files (local, gitignored):**
-   The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`). Place your legally dumped TOTK v1.2.1 image/update and `prod.keys` as configured in [`Makefile`](Makefile), then prepare the v1.2.1 extracted/rewritten runtime inputs.
-
-4. **Build the native v1.2.1 runtime:**
+2. **Run the automated v1.2.1 setup:**
    ```bash
-   make runtime-v121
+   make setup-v121 \
+     BASE_ROM=/path/to/totk_base.xci \
+     UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
+     KEYS=/path/to/prod.keys
    ```
-   *(Or `make build/totk-native-v121` for just the binary. Note that `make build/totk-native` targets v1.0.0, where the Minecraft overlay bridge stubs out and will not activate.)*
+   *(If `BASE_ROM` is an `.nsp` instead of an `.xci`, also pass `FIRMWARE=/path/to/unpacked_firmware_ncas` so Switch shared fonts can be extracted. You can also run `python3 scripts/setup_v121.py --check-only` to check prerequisites and completed stages.)*
+
+   This runs the full pipeline in order and skips any stage already completed:
+   - Installs `.venv` Python dependencies (`make dependencies`).
+   - Extracts v1.2.1 ExeFS, merges v1.2.1 RomFS, and extracts Switch shared fonts.
+   - Rewrites `sdk`, `subsdk0`, and `main` into `rewritten/v121` and runs phase 1+2 verification.
+   - Auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` version and populates `assets/mc/` (overrideable via `MC_DIR` or `MC_JAR`).
+   - Builds `make runtime-v121` (`build/totk-native-v121`, `build/pso_manifest.tsv`, `build/pso_title.tsv`).
+
+3. **Launch:**
+   ```bash
+   make run-v121
+   ```
+   Saves and `minecraft-base.v1` are stored in `user-data/` by default (override with `PROFILE_DIR=/path/to/profile`).
+
+---
+
+## Controls
+
+| Key / Input | Action |
+| :--- | :--- |
+| `Tab` or `F6` | Toggle **Minecraft Mode** / **Zelda Mode** |
+| `F5` or `V` | Cycle camera view (1st-person → 3rd-person back → 3rd-person front) |
+| `E` / `Esc` | Open / close Creative & Survival Inventory |
+| `1`–`9` or Scroll | Select hotbar slot |
+| `Left Click` | Attack / hold to mine block (sword or flint ignites TNT) |
+| `Right Click` | Place block / use item / eat / draw bow / open Crafting Table or Furnace / sleep in bed / raise Shield |
+| `F` | Swap mainhand and offhand |
+| `G` | Quick-toggle Elytra + Totem of Undying vs. Diamond Chestplate + Shield |
+| `Space` | Jump (press again in midair with Elytra to glide; right-click Firework Rocket to boost) |
+| `Q` (`Shift+Q`) | Drop 1 item (or full stack) |
+| `N` | Spawn a Minecraft mob nearby |
+| `Cmd + ,` | Open **Minecraft Settings** (FOV, 3rd-person distance, sensitivity, mob spawns, GUI/hand scale, shaders) |
 
 ---
 

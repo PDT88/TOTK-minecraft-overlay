@@ -354,6 +354,24 @@ build/totk-native-v121: $(wildcard runtime/*.[ch] runtime/*.m runtime/*.S) build
 	xcrun clang -std=c11 $(NATIVE_OPT) -g -Wall -Wextra -Werror -Wno-deprecated-declarations -Ithird_party/d2r_gfx/gfx/nvn/include -DTOTK_GAME_V121=1 -Ibuild/v121 -Ibuild -I/opt/homebrew/opt/opus/include/opus -I/opt/homebrew/opt/libvpx/include runtime/loader.c runtime/game_patches.c runtime/world_survey.c runtime/minecraft_overlay.c runtime/mc_assets.c runtime/mc_audio.c runtime/mc_totk_bridge.c runtime/mc_engine.c runtime/mc_metal_render.m runtime/game_slot.c runtime/services.c runtime/romfs.c runtime/threads.c runtime/gate.S runtime/hle_stack.S runtime/hle_stack.c runtime/thread_enter.S runtime/gfx_bridge.c runtime/frontend.m runtime/account.c runtime/input.c runtime/hid_feedback.c runtime/motion_fusion.c runtime/autoload.c runtime/gamepad.m runtime/gamepad_feedback.m runtime/gfx_probe.c runtime/vpool_probe.m runtime/gpu_path_probe.m runtime/memory_probe.c runtime/shared_font.c runtime/ipc.c runtime/audio_renderer.c runtime/audio_mixer.c runtime/audio_reverb.c runtime/audio_effects.c runtime/fs_host.c runtime/opus_codec.c runtime/movie_host.c runtime/time_host.c runtime/applet_host.c runtime/swkbd_host.c $(GFX_OBJECTS) /opt/homebrew/opt/opus/lib/libopus.a /opt/homebrew/opt/libvpx/lib/libvpx.a -framework Metal -framework MetalFX -framework Foundation -framework QuartzCore -framework ImageIO -framework CoreGraphics -framework CoreText -framework UniformTypeIdentifiers -fobjc-arc -framework Cocoa -framework CoreVideo -framework CoreFoundation -framework AudioToolbox -framework GameController -framework CoreHaptics -framework IOKit -o "$@"
 runtime-v121: build/totk-native-v121 build/pso_manifest.tsv build/pso_title.tsv
 
+# End-to-end macOS v1.2.1 setup and launch targets.
+.PHONY: setup-v121 run-v121
+PROFILE_DIR ?= $(CURDIR)/user-data
+setup-v121:
+	python3 scripts/setup_v121.py \
+	  $(if $(BASE_ROM),--base "$(BASE_ROM)") \
+	  $(if $(UPDATE_NSP),--update "$(UPDATE_NSP)") \
+	  $(if $(KEYS),--keys "$(KEYS)") \
+	  $(if $(FIRMWARE),--firmware "$(FIRMWARE)") \
+	  $(if $(HACTOOL),--hactool "$(HACTOOL)") \
+	  $(if $(MC_DIR),--mc-dir "$(MC_DIR)") \
+	  $(if $(MC_JAR),--mc-jar "$(MC_JAR)") \
+	  $(if $(JOBS),--jobs "$(JOBS)")
+
+run-v121: runtime-v121
+	@mkdir -p "$(PROFILE_DIR)"
+	TOTK_PROFILE_DIR="$(PROFILE_DIR)" build/totk-native-v121 rewritten/v121 boot
+
 # Isolated 1.4.3 build; never replace the validated v0 executable or generated headers.
 .PHONY: runtime-v143
 build/v143/runtime_tables.h: scripts/prepare_runtime.py analysis/v143-port/phase12-validation.json
