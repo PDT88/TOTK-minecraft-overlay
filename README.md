@@ -18,7 +18,7 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
   - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
   - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
 - **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and chat/debug commands.
-- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from a local Minecraft Java `1.21.11` installation and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
+- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from any local Minecraft: Java Edition `1.21+` installation (including `1.21.x` and `26.x+` releases) and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
 
 ---
 
@@ -50,7 +50,7 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
    ```bash
    .venv/bin/python tools/extract_mc_assets.py
    ```
-   This auto-discovers your newest installed Minecraft Java `1.21+` version (or pass `--jar` / `--index` to pick a specific version) and populates `assets/mc/`.
+   This auto-discovers your newest installed Minecraft: Java Edition `1.21+` version (including `1.21.x` and `26.x+`, preferring stable releases over snapshots) and populates `assets/mc/`. You can also set `MINECRAFT_DIR` or pass `--jar` / `--index` to target a specific version or directory.
 
 3. **Provide TOTK base files (local, gitignored):**
    Place your legally dumped TOTK image/update and `prod.keys` as configured in [`Makefile`](Makefile), then run the extraction/rewrite targets (`make extract`, `make modules`, `make rewrite-sdk`, `make rewrite-main`).
