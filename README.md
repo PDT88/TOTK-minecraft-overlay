@@ -4,7 +4,7 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into a native ma
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* and *Minecraft: Java Edition* (`1.21.11`) to extract assets and build/run locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* and *Minecraft: Java Edition* (`1.21` or newer, including `1.21.x` and `26.x+`) to extract assets and build/run locally.
 
 ---
 
@@ -32,7 +32,7 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 | **Core Simulation** | [`runtime/mc_engine.h`](runtime/mc_engine.h), [`runtime/mc_engine.c`](runtime/mc_engine.c), [`runtime/mc_snapshot.h`](runtime/mc_snapshot.h) | Voxel blocks, mobs, primed TNT, dropped items, projectiles, particles, crafting/smelting, HUD layout, and thread-safe POD `McRenderSnapshot` emission. |
 | **TOTK Runtime Bridge** | [`runtime/mc_totk_bridge.h`](runtime/mc_totk_bridge.h), [`runtime/mc_totk_bridge.c`](runtime/mc_totk_bridge.c) | Reads/writes Link's pose, HP, stamina, camera matrix, terrain raycasts, wall-sweep collision, active actors/enemies, and incoming damage on the guest frame thread. |
 | **Metal Renderer** | [`runtime/mc_metal_render.h`](runtime/mc_metal_render.h), [`runtime/mc_metal_render.m`](runtime/mc_metal_render.m) | Multi-pass Metal rendering: 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
-| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs from a local Minecraft Java `1.21.11` installation into `assets/mc/` (gitignored). |
+| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Auto-discovers installed Minecraft Java `1.21+` versions and extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs into `assets/mc/` (gitignored). |
 | **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
 | **Windows Port Spec** | [`WINDOWS_MC_MOD_SPEC.md`](WINDOWS_MC_MOD_SPEC.md) | Full specification for porting the overlay to Windows (`valentderah/totk-pc-recomp` + Vulkan). |
 
@@ -50,7 +50,7 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
    ```bash
    .venv/bin/python tools/extract_mc_assets.py
    ```
-   This populates `assets/mc/` from your local Minecraft Java `1.21.11` installation (`~/Library/Application Support/minecraft/`).
+   This auto-discovers your newest installed Minecraft Java `1.21+` version (or pass `--jar` / `--index` to pick a specific version) and populates `assets/mc/`.
 
 3. **Provide TOTK base files (local, gitignored):**
    Place your legally dumped TOTK image/update and `prod.keys` as configured in [`Makefile`](Makefile), then run the extraction/rewrite targets (`make extract`, `make modules`, `make rewrite-sdk`, `make rewrite-main`).

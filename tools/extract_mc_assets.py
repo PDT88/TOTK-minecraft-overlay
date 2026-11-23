@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract 100% authentic Minecraft Java 1.21.11 textures, font widths,
+"""Extract 100% authentic Minecraft Java (1.21+) textures, font widths,
 en_us strings, and decoded 48 kHz PCM WAV sounds into assets/mc/ and sync
 to the packaged Tears of the Kingdom.app bundle.
 
@@ -13,7 +13,9 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
+import os
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
@@ -22,15 +24,91 @@ import wave
 import zipfile
 import zlib
 
-DEFAULT_JAR = Path("/Users/pdt/Library/Application Support/minecraft/versions/1.21.11/1.21.11.jar")
-DEFAULT_INDEX = Path("/Users/pdt/Library/Application Support/minecraft/assets/indexes/29.json")
-DEFAULT_OBJECTS = Path("/Users/pdt/Library/Application Support/minecraft/assets/objects")
-DEFAULT_OUT = Path("/Users/pdt/Games/TOTK_build/totk/assets/mc")
-DEFAULT_SYNC_APP = Path("/Users/pdt/Games/Tears of the Kingdom.app/Contents/Resources/totk/assets/mc")
-DEFAULT_FFMPEG = Path("/opt/homebrew/bin/ffmpeg")
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Mapping: (output relpath under assets/mc/textures/, path inside 1.21.11.jar)
-TEXTURE_MAP: list[tuple[str, str]] = [
+
+def _default_minecraft_dir() -> Path:
+    env_dir = os.environ.get("MINECRAFT_DIR")
+    if env_dir:
+        return Path(env_dir)
+    if os.name == "nt":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / ".minecraft"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "minecraft"
+    return Path.home() / ".minecraft"
+
+
+def _parse_mc_version(name: str) -> tuple[bool, tuple[int, ...], int] | None:
+    """Return (is_121_plus, numeric_tuple, is_release) for sorting installed MC versions."""
+    m = re.match(r"^(\d+)\.(\d+)(?:\.(\d+))?(.*)$", name)
+    if not m:
+        return None
+    major, minor = int(m.group(1)), int(m.group(2))
+    patch = int(m.group(3)) if m.group(3) is not None else 0
+    suffix = m.group(4) or ""
+    # Support 1.21+ (1.21, 1.21.11, 1.22, ...) and 26.x+ CalVer releases
+    is_supported = (major == 1 and minor >= 21) or (major >= 26)
+    is_release = 1 if suffix == "" else 0
+    return (is_supported, (major, minor, patch), is_release)
+
+
+def _resolve_index_for_jar(jar_path: Path, mc_dir: Path) -> Path | None:
+    """Find the matching assets/indexes/<id>.json using <version>.json next to the jar."""
+    meta_path = jar_path.with_suffix(".json")
+    if meta_path.is_file():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            idx_id = meta.get("assetIndex", {}).get("id")
+            if idx_id:
+                cand = mc_dir / "assets" / "indexes" / f"{idx_id}.json"
+                if cand.is_file():
+                    return cand
+        except (OSError, json.JSONDecodeError):
+            pass
+    return None
+
+
+def _discover_latest_121_plus_jar(mc_dir: Path) -> Path:
+    versions_dir = mc_dir / "versions"
+    candidates: list[tuple[tuple[int, tuple[int, ...], int], Path]] = []
+    if versions_dir.is_dir():
+        for vdir in versions_dir.iterdir():
+            if not vdir.is_dir():
+                continue
+            parsed = _parse_mc_version(vdir.name)
+            if not parsed or not parsed[0]:
+                continue
+            jar = vdir / f"{vdir.name}.jar"
+            if jar.is_file() and _resolve_index_for_jar(jar, mc_dir) is not None:
+                candidates.append(((parsed[2], parsed[1], 0), jar))
+    if candidates:
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1]
+    return versions_dir / "1.21.11" / "1.21.11.jar"
+
+
+def _default_ffmpeg() -> Path:
+    found = shutil.which("ffmpeg")
+    if found:
+        return Path(found)
+    for cand in (Path("/opt/homebrew/bin/ffmpeg"), Path("/usr/local/bin/ffmpeg")):
+        if cand.is_file():
+            return cand
+    return Path("ffmpeg")
+
+
+DEFAULT_MC_DIR = _default_minecraft_dir()
+DEFAULT_JAR = _discover_latest_121_plus_jar(DEFAULT_MC_DIR)
+DEFAULT_INDEX = _resolve_index_for_jar(DEFAULT_JAR, DEFAULT_MC_DIR) or (DEFAULT_MC_DIR / "assets" / "indexes" / "29.json")
+DEFAULT_OBJECTS = DEFAULT_MC_DIR / "assets" / "objects"
+DEFAULT_OUT = REPO_ROOT / "assets" / "mc"
+DEFAULT_SYNC_APP = REPO_ROOT.parent.parent / "Tears of the Kingdom.app" / "Contents" / "Resources" / "totk" / "assets" / "mc"
+DEFAULT_FFMPEG = _default_ffmpeg()
+
+# Mapping: (output relpath under assets/mc/textures/, path or fallback paths inside jar)
+TEXTURE_MAP: list[tuple[str, str | tuple[str, ...]]] = [
     # HUD sprites & widgets
     ("gui/hotbar.png", "assets/minecraft/textures/gui/sprites/hud/hotbar.png"),
     ("gui/hotbar_selection.png", "assets/minecraft/textures/gui/sprites/hud/hotbar_selection.png"),
@@ -166,8 +244,14 @@ TEXTURE_MAP: list[tuple[str, str]] = [
 
     # Colormaps, Entities, Misc, Particles
     ("colormap/grass.png", "assets/minecraft/textures/colormap/grass.png"),
-    ("entity/shield_base_nopattern.png", "assets/minecraft/textures/entity/shield_base_nopattern.png"),
-    ("entity/shield_base.png", "assets/minecraft/textures/entity/shield_base.png"),
+    ("entity/shield_base_nopattern.png", (
+        "assets/minecraft/textures/entity/shield_base_nopattern.png",
+        "assets/minecraft/textures/entity/shield/shield_base_nopattern.png",
+    )),
+    ("entity/shield_base.png", (
+        "assets/minecraft/textures/entity/shield_base.png",
+        "assets/minecraft/textures/entity/shield/shield_base.png",
+    )),
     ("entity/elytra.png", "assets/minecraft/textures/entity/equipment/wings/elytra.png"),
     ("entity/steve.png", "assets/minecraft/textures/entity/player/wide/steve.png"),
     ("entity/creeper.png", "assets/minecraft/textures/entity/creeper/creeper.png"),
@@ -565,10 +649,47 @@ def sync_tree(src_dir: Path, dst_dir: Path) -> int:
     return copied
 
 
+def _encode_rgba_png(w: int, h: int, rgba: bytes) -> bytes:
+    """Encode an RGBA8 buffer as a valid PNG using only stdlib zlib/struct."""
+    def _chunk(tag: bytes, payload: bytes) -> bytes:
+        crc = zlib.crc32(tag + payload) & 0xFFFFFFFF
+        return struct.pack(">I", len(payload)) + tag + payload + struct.pack(">I", crc)
+
+    raw = bytearray()
+    row_bytes = w * 4
+    for y in range(h):
+        raw.append(0)
+        raw.extend(rgba[y * row_bytes:(y + 1) * row_bytes])
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+    return b"\x89PNG\r\n\x1a\n" + _chunk(b"IHDR", ihdr) + _chunk(b"IDAT", zlib.compress(bytes(raw), 6)) + _chunk(b"IEND", b"")
+
+
+def _compose_red_bed_png(zf: zipfile.ZipFile, jar_names: set[str]) -> bytes | None:
+    """Compose legacy 64x64 entity/bed/red.png from 26.3+ split bed block textures."""
+    head_path = "assets/minecraft/textures/block/red_bed_head_up.png"
+    foot_path = "assets/minecraft/textures/block/red_bed_foot_up.png"
+    if head_path not in jar_names or foot_path not in jar_names:
+        return None
+    hw, hh, h_rgba = decode_png_rgba(zf.read(head_path))
+    fw, fh, f_rgba = decode_png_rgba(zf.read(foot_path))
+    canvas = bytearray(64 * 64 * 4)
+
+    def _blit(src_w: int, src_h: int, src_rgba: bytes, dst_x: int, dst_y: int) -> None:
+        for sy in range(min(src_h, 64 - dst_y)):
+            for sx in range(min(src_w, 64 - dst_x)):
+                si = (sy * src_w + sx) * 4
+                di = ((dst_y + sy) * 64 + (dst_x + sx)) * 4
+                canvas[di:di + 4] = src_rgba[si:si + 4]
+
+    _blit(hw, hh, h_rgba, 6, 6)
+    _blit(fw, fh, f_rgba, 6, 28)
+    return _encode_rgba_png(64, 64, bytes(canvas))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--jar", type=Path, default=DEFAULT_JAR)
-    parser.add_argument("--index", type=Path, default=DEFAULT_INDEX)
+    parser.add_argument("--index", type=Path, default=None)
     parser.add_argument("--objects", type=Path, default=DEFAULT_OBJECTS)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--sync-app", type=Path, default=DEFAULT_SYNC_APP)
@@ -576,6 +697,9 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="Re-decode WAVs even if valid 48kHz PCM exists")
     parser.add_argument("--no-sync", action="store_true", help="Do not sync to .app bundle")
     args = parser.parse_args()
+
+    if args.index is None:
+        args.index = _resolve_index_for_jar(args.jar, args.objects.parent.parent) or DEFAULT_INDEX
 
     if not args.jar.is_file():
         print(f"ERROR: Missing Minecraft jar: {args.jar}", file=sys.stderr)
@@ -600,10 +724,19 @@ def main() -> int:
 
     with zipfile.ZipFile(args.jar, "r") as zf:
         jar_names = set(zf.namelist())
-        for rel_dst, jar_src in TEXTURE_MAP:
-            if jar_src not in jar_names:
-                raise FileNotFoundError(f"Missing inside jar: {jar_src}")
-            png_bytes = zf.read(jar_src)
+        for rel_dst, jar_src_spec in TEXTURE_MAP:
+            candidates = (jar_src_spec,) if isinstance(jar_src_spec, str) else jar_src_spec
+            jar_src = next((c for c in candidates if c in jar_names), None)
+            if jar_src is not None:
+                png_bytes = zf.read(jar_src)
+            elif rel_dst == "entity/bed/red.png":
+                composed = _compose_red_bed_png(zf, jar_names)
+                if composed is None:
+                    raise FileNotFoundError(f"Missing inside jar: {candidates[0]}")
+                png_bytes = composed
+                jar_src = "composed:block/red_bed_{head,foot}_up.png"
+            else:
+                raise FileNotFoundError(f"Missing inside jar: {' | '.join(candidates)}")
             if png_bytes[:8] != b"\x89PNG\r\n\x1a\n":
                 raise ValueError(f"Corrupt PNG header in {jar_src}")
             w, h = struct.unpack(">II", png_bytes[16:24])
