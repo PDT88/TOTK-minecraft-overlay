@@ -9,7 +9,7 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* and *Minecraft: Java Edition* (`1.21` or newer, including `1.21.x` and `26.x+`) to extract assets and build/run locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You must already have your own legally obtained copies of *Tears of the Kingdom* (**v1.2.1**) running natively and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) installed locally.
 
 ---
 
@@ -42,36 +42,39 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 ---
 
+## Requirements
+
+- **Apple Silicon Mac** running macOS with Xcode Command Line Tools and Homebrew.
+- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1) running natively** via [`MacNativeGames`](https://github.com/ly05010419/MacNativeGames) (`totk-native` v1.2.1 runtime inputs already set up locally).
+- ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)** installed locally.
+
+---
+
 ## Setup & Usage (macOS)
 
 The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`).
 
-1. **Install Homebrew dependencies & `hactool`:**
+1. **Install Homebrew & Python dependencies:**
    ```bash
-   brew install opus libvpx ffmpeg llvm
+   brew install opus libvpx ffmpeg
+   make dependencies
    ```
    - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
    - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
-   - `llvm` is used by `scripts/verify_rewrites.py` during rewrite validation.
-   - `hactool` is required once to merge the v1.2.1 RomFS update (place `hactool` on `PATH`, at `tooling/hactool`, or pass `--hactool`).
 
-2. **Run the automated v1.2.1 setup:**
+2. **Extract Minecraft assets (local, gitignored):**
    ```bash
-   make setup-v121 \
-     BASE_ROM=/path/to/totk_base.xci \
-     UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
-     KEYS=/path/to/prod.keys
+   .venv/bin/python tools/extract_mc_assets.py
    ```
-   *(If `BASE_ROM` is an `.nsp` instead of an `.xci`, also pass `FIRMWARE=/path/to/unpacked_firmware_ncas` so Switch shared fonts can be extracted. You can also run `python3 scripts/setup_v121.py --check-only` to check prerequisites and completed stages.)*
+   This auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` version (preferring stable releases over snapshots) and populates `assets/mc/`. Override with `MINECRAFT_DIR` or `--jar` / `--index` if needed.
 
-   This runs the full pipeline in order and skips any stage already completed:
-   - Installs `.venv` Python dependencies (`make dependencies`).
-   - Extracts v1.2.1 ExeFS, merges v1.2.1 RomFS, and extracts Switch shared fonts.
-   - Rewrites `sdk`, `subsdk0`, and `main` into `rewritten/v121` and runs phase 1+2 verification.
-   - Auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` version and populates `assets/mc/` (overrideable via `MC_DIR` or `MC_JAR`).
-   - Builds `make runtime-v121` (`build/totk-native-v121`, `build/pso_manifest.tsv`, `build/pso_title.tsv`).
+3. **Build the v1.2.1 native runtime:**
+   ```bash
+   make runtime-v121
+   ```
+   *(Builds `build/totk-native-v121`, `build/pso_manifest.tsv`, and `build/pso_title.tsv` using your existing native TOTK v1.2.1 runtime inputs.)*
 
-3. **Launch:**
+4. **Launch:**
    ```bash
    make run-v121
    ```
@@ -102,7 +105,7 @@ The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settin
 
 The [`.gitignore`](.gitignore) file explicitly excludes all copyrighted, extracted, or generated artifacts:
 - `assets/mc/` (extracted Minecraft textures, sounds, strings, and manifest)
-- `extracted/`, `rewritten/`, `build/`, `user-data/`, `*.keys`, `analysis/`, `tooling/`, `.venv/`
+- `extracted/`, `rewritten/`, `build/`, `user-data/`, `analysis/`, `tooling/`, `.venv/`
 
 ---
 
