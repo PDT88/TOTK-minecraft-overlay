@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract 100% authentic Minecraft Java (1.21+) textures, font widths,
-en_us strings, and decoded 48 kHz PCM WAV sounds into assets/mc/ and sync
-to the packaged Tears of the Kingdom.app bundle.
+en_us strings, and decoded 48 kHz PCM WAV sounds into assets/mc/, with
+optional syncing to a packaged .app bundle via --sync-app.
 
 Zero procedural/synthetic textures, fonts, or audio are generated.
 Zero non-English (Spanish) strings are emitted.
@@ -104,7 +104,7 @@ DEFAULT_JAR = _discover_latest_121_plus_jar(DEFAULT_MC_DIR)
 DEFAULT_INDEX = _resolve_index_for_jar(DEFAULT_JAR, DEFAULT_MC_DIR) or (DEFAULT_MC_DIR / "assets" / "indexes" / "29.json")
 DEFAULT_OBJECTS = DEFAULT_MC_DIR / "assets" / "objects"
 DEFAULT_OUT = REPO_ROOT / "assets" / "mc"
-DEFAULT_SYNC_APP = REPO_ROOT.parent.parent / "Tears of the Kingdom.app" / "Contents" / "Resources" / "totk" / "assets" / "mc"
+DEFAULT_SYNC_APP: Path | None = None
 DEFAULT_FFMPEG = _default_ffmpeg()
 
 # Mapping: (output relpath under assets/mc/textures/, path or fallback paths inside jar)
@@ -692,7 +692,7 @@ def main() -> int:
     parser.add_argument("--index", type=Path, default=None)
     parser.add_argument("--objects", type=Path, default=DEFAULT_OBJECTS)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    parser.add_argument("--sync-app", type=Path, default=DEFAULT_SYNC_APP)
+    parser.add_argument("--sync-app", type=Path, default=DEFAULT_SYNC_APP, help="Optional .app bundle assets/mc directory to sync to")
     parser.add_argument("--ffmpeg", type=Path, default=DEFAULT_FFMPEG)
     parser.add_argument("--force", action="store_true", help="Re-decode WAVs even if valid 48kHz PCM exists")
     parser.add_argument("--no-sync", action="store_true", help="Do not sync to .app bundle")
@@ -789,7 +789,7 @@ def main() -> int:
     expected_snd_paths: set[Path] = set()
     for rel_dst, asset_key in SOUND_MAP:
         if asset_key not in index_objs:
-            raise KeyError(f"Missing sound key in 29.json: {asset_key}")
+            raise KeyError(f"Missing sound key in {args.index.name}: {asset_key}")
         h = index_objs[asset_key]["hash"]
         src_ogg = args.objects / h[:2] / h
         if not src_ogg.is_file():
@@ -850,7 +850,7 @@ def main() -> int:
         f"Extracted {len(tex_entries)} PNG textures, 1 ascii_widths.bin, "
         f"{len(en_us)} en_us strings, and {len(sound_entries)} 48kHz PCM WAV sounds "
         f"into {args.out}"
-        + (f" (synced {synced_count} files to {args.sync_app})" if not args.no_sync else "")
+        + (f" (synced {synced_count} files to {args.sync_app})" if (not args.no_sync and args.sync_app) else "")
     )
     return 0
 

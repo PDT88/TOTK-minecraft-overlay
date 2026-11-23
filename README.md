@@ -39,11 +39,12 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 ## Setup & Usage (macOS)
 
-1. **Install Python dependencies & tools:**
+1. **Install Homebrew & Python dependencies:**
    ```bash
+   brew install opus libvpx ffmpeg
    make dependencies
    ```
-   Ensure `ffmpeg` is available on `PATH` for decoding Minecraft `.ogg` audio to 48 kHz `.wav`.
+   `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`, and `ffmpeg` is used to decode Minecraft `.ogg` audio to 48 kHz `.wav`.
 
 2. **Extract Minecraft assets (local, gitignored):**
    ```bash
@@ -51,13 +52,14 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
    ```
    This auto-discovers your newest installed Minecraft: Java Edition `1.21+` version (including `1.21.x` and `26.x+`, preferring stable releases over snapshots) and populates `assets/mc/`. You can also set `MINECRAFT_DIR` or pass `--jar` / `--index` to target a specific version or directory.
 
-3. **Provide TOTK base files (local, gitignored):**
-   Place your legally dumped TOTK image/update and `prod.keys` as configured in [`Makefile`](Makefile), then run the extraction/rewrite targets (`make extract`, `make modules`, `make rewrite-sdk`, `make rewrite-main`).
+3. **Provide TOTK v1.2.1 base files (local, gitignored):**
+   The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`). Place your legally dumped TOTK v1.2.1 image/update and `prod.keys` as configured in [`Makefile`](Makefile), then prepare the v1.2.1 extracted/rewritten runtime inputs.
 
-4. **Build the native runtime:**
+4. **Build the native v1.2.1 runtime:**
    ```bash
-   make build/totk-native
+   make runtime-v121
    ```
+   *(Or `make build/totk-native-v121` for just the binary. Note that `make build/totk-native` targets v1.0.0, where the Minecraft overlay bridge stubs out and will not activate.)*
 
 ---
 

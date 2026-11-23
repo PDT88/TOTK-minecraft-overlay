@@ -365,7 +365,7 @@ build/totk-native-v143: $(wildcard runtime/*.[ch] runtime/*.m runtime/*.S) build
 runtime-v143: build/totk-native-v143 build/pso_manifest.tsv build/pso_title.tsv
 
 # Keep standalone rendering probe binaries outside the source checkout.
-RENDER_PROBE_DIR ?= $(abspath $(CURDIR)/../../../TOTK_build/rendering-probes)
+RENDER_PROBE_DIR ?= /tmp/totk-native-rendering-probes
 .PHONY: probe-texture-auto-layout
 $(RENDER_PROBE_DIR)/texture-auto-layout-probe: tests/texture_auto_layout/probe.c third_party/d2r_gfx/gfx/nvn/nvn_tex.c third_party/d2r_gfx/gfx/nvn/nvn_tex.h third_party/d2r_gfx/gfx/tex/nvn_deswizzle.c
 	@mkdir -p "$(RENDER_PROBE_DIR)"

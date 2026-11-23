@@ -105,6 +105,7 @@ static const McSoundGroupId k_event_to_group[MC_SFX_COUNT] = {
     [MC_SFX_SPLASH]                = MC_SNDGRP_SPLASH,
 };
 
+static _Atomic int g_audio_ready = 0;
 static McAudioQueue g_queue;
 static _Atomic uint32_t g_rng_counter = 0x9E3779B9u;
 static _Atomic int g_elytra_active = 0;
@@ -187,6 +188,7 @@ static float event_hearing_radius(McSfxEvent ev) {
 }
 
 void mc_audio_init(void) {
+    if (atomic_load_explicit(&g_audio_ready, memory_order_acquire)) return;
     memset(g_voices, 0, sizeof g_voices);
     memset(g_last_variant, 0xff, sizeof g_last_variant);
     g_voice_seq = 0;
@@ -203,9 +205,11 @@ void mc_audio_init(void) {
     for (uint32_t i = 0; i < MC_AUDIO_QUEUE_CAP; i++) {
         atomic_store_explicit(&g_queue.slots[i].state, 0u, memory_order_relaxed);
     }
+    atomic_store_explicit(&g_audio_ready, 1, memory_order_release);
 }
 
 void mc_audio_push(McSfxEvent ev, float gain, float pitch, float pan) {
+    if (!atomic_load_explicit(&g_audio_ready, memory_order_acquire)) return;
     if ((unsigned)ev == 0u || (unsigned)ev >= (unsigned)MC_SFX_COUNT) return;
     if (!isfinite(gain) || gain <= 0.0f) return;
 
@@ -526,6 +530,7 @@ static inline float soft_limit_sample(float x) {
 }
 
 void mc_audio_mix(float *stereo_io, int frames, int rate) {
+    if (!atomic_load_explicit(&g_audio_ready, memory_order_acquire)) return;
     if (!stereo_io || frames <= 0 || rate <= 0) return;
     int safe_rate = (rate < 8000) ? 8000 : ((rate > 384000) ? 384000 : rate);
 

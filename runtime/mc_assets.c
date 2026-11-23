@@ -522,7 +522,6 @@ static int resolve_assets_root(const char *override_dir, char *out_root, size_t 
     }
 
     if (try_candidate_root("assets/mc", out_root, cap)) return 1;
-    if (try_candidate_root("/Users/pdt/Games/TOTK_build/totk/assets/mc", out_root, cap)) return 1;
     return 0;
 }
 
@@ -640,6 +639,9 @@ static int load_wav_pcm16(const char *path, McSound *out) {
             have_fmt = 1;
         } else if (memcmp(chdr, "data", 4) == 0) {
             if (csize == 0 || csize > 64u * 1024u * 1024u) break;
+            free(pcm);
+            pcm = NULL;
+            data_bytes = 0;
             pcm = (int16_t *)malloc(csize);
             if (!pcm) break;
             if (fread(pcm, 1, csize, fp) != csize) {
@@ -803,6 +805,7 @@ static void load_en_us_json(const char *root_dir) {
 }
 
 static void free_all_locked(void) {
+    atomic_store_explicit(&g_ready, 0, memory_order_release);
     for (int i = 0; i < MC_TEX_COUNT; i++) {
         free(g_textures[i].rgba);
         memset(&g_textures[i], 0, sizeof g_textures[i]);
@@ -821,7 +824,6 @@ static void free_all_locked(void) {
     g_font_widths_loaded = 0;
     memset(g_font_widths, 4, sizeof g_font_widths);
     g_root_dir[0] = '\0';
-    atomic_store_explicit(&g_ready, 0, memory_order_release);
 }
 
 int mc_assets_init(const char *override_dir) {

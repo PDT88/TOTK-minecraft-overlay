@@ -2301,7 +2301,7 @@ static uint32_t prepare_paperdoll_verts(int slot, const McRenderSnapshot *s) {
 }
 
 void mc_metal_render_gui_pre_m4(id<MTL4CommandBuffer> cb, int slot) {
-    if (!g_r.initialized || !cb || slot < 0 || slot >= MC_ALL_SLOTS || !runtime_mc_active()) return;
+    if (!g_r.initialized || !cb || slot < 0 || slot >= MC_RING_SLOTS || !runtime_mc_active()) return;
     mc_snapshot_copy(&g_r.present_snap[slot]);
     g_r.pre_copied[slot] = 1u;
     const McRenderSnapshot *s = &g_r.present_snap[slot];
@@ -2312,6 +2312,7 @@ void mc_metal_render_gui_pre_m4(id<MTL4CommandBuffer> cb, int slot) {
     if (!psos) return;
 
     id<MTL4ArgumentTable> args = g_r.paper_args[slot];
+    if (!args) return;
     [args setAddress:g_r.paper_vb[slot].gpuAddress atIndex:0];
     [args setAddress:g_r.paper_ub[slot].gpuAddress atIndex:1];
     if (g_r.env_default_buf) [args setAddress:g_r.env_default_buf.gpuAddress atIndex:2];
@@ -2809,12 +2810,13 @@ void mc_metal_render_gui_m4(id<MTL4RenderCommandEncoder> en,
                             id<MTLTexture> dst,
                             MTLViewport vp,
                             int slot) {
-    if (!en || !dst) return;
+    if (!en || !dst || slot < 0 || slot >= MC_RING_SLOTS) return;
     McMesh2D m = {0};
     const McGuiPsoEntry *psos = NULL;
     if (!prepare_gui_slot(slot, dst.pixelFormat, &m, &psos)) return;
 
     id<MTL4ArgumentTable> args = g_r.gui_args[slot];
+    if (!args) return;
     id<MTLTexture> paper = g_r.paper_tex[slot] ? g_r.paper_tex[slot] : g_r.dummy_rgba;
     [args setAddress:g_r.gui_vb[slot].gpuAddress atIndex:0];
     [args setAddress:g_r.gui_ub[slot].gpuAddress atIndex:1];

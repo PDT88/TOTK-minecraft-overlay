@@ -57,8 +57,8 @@ static void ensure_initialized_locked(Module *main_module) {
         g_bridge_inited = 1;
     }
     if (!g_mc_eng.initialized) {
-        mc_assets_init(NULL);
         mc_audio_init();
+        mc_assets_init(NULL);
         mc_engine_init(&g_mc_eng);
         mc_engine_export_snapshot(&g_mc_eng, &g_mc_snap);
         sync_atomic_flags_locked();
