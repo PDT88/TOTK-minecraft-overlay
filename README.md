@@ -53,15 +53,36 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ### Quick Setup (recommended)
 
-1. Check prerequisites and stage status:
+1. **Clone the `windows` branch:**
+   ```powershell
+   git clone -b windows https://github.com/PDT88/TOTK-minecraft-overlay.git
+   cd TOTK-minecraft-overlay
+   ```
+
+2. **Install Windows build dependencies** *(skip any you already have; full details in [`docs/building.md`](docs/building.md))* **:**
+   ```powershell
+   winget install -e --id astral-sh.uv
+   winget install -e --id Microsoft.DotNet.SDK.10
+   winget install -e --id KhronosGroup.VulkanSDK
+   winget install -e --id Gyan.FFmpeg
+   winget install -e --id Microsoft.VisualStudio.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+   ```
+   Also install [MSYS2](https://www.msys2.org/) to `C:\msys64`, open **MSYS2 UCRT64**, and run:
+   ```sh
+   pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-{clang,lld,ninja,gcc,make,pkgconf,sdl3,opus,libvpx,zstd,vulkan-devel,vulkan-memory-allocator,vulkan-validation-layers,shaderc,spirv-tools} base-devel git unzip
+   ```
+
+3. **Configure your local TOTK v1.2.1 setup:**
+   Copy [`config.example.toml`](config.example.toml) to `config.local.toml` and point it to your local TOTK v1.2.1 paths *(or skip if `build\extracted\v121\exefs` is already populated)*.
+
+4. **Verify prerequisites and run the automated setup:**
    ```powershell
    python tools\setup_mc_windows.py --check-only
-   ```
-2. Run the automated setup (creates `.venv` / `.venv-py314`, extracts Minecraft assets into `assets\mc\`, builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping completed stages):
-   ```powershell
    python tools\setup_mc_windows.py
    ```
-3. Launch:
+   This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete. *(Add `--cpu v2` for CPUs without AVX2/FMA.)*
+
+5. **Launch:**
    ```powershell
    build\v121\totk.exe
    ```
