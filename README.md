@@ -1,8 +1,24 @@
 # TOTK Minecraft Overlay (`TOTK-minecraft-overlay`)
 
-A **Minecraft-in-Hyrule** runtime overlay mod embedded into a native macOS ARM64 port of *The Legend of Zelda: Tears of the Kingdom* (`totk-native`), along with a full specification for porting the overlay to Windows (`totk-pc-recomp`).
+A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into a native macOS ARM64 port of *The Legend of Zelda: Tears of the Kingdom* (`totk-native`), along with a full specification for porting the overlay to Windows (`totk-pc-recomp`).
+
+Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
 > **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* and *Minecraft: Java Edition* (`1.21.11`) to extract assets and build/run locally.
+
+---
+
+## Features
+
+- **Seamless Mode & Camera Switching**: Toggle between **Minecraft Mode** and **Zelda Mode** on the fly, with first-person, third-person back, and third-person front views, mouse-look camera capture, and automatic hiding/restoring of Link's 3D body and Zelda's native HUD.
+- **Depth-Tested 3D World in Hyrule**: Place and mine blocks (wood, stone, obsidian, glass, torches, water, lava, crafting tables, furnaces, beds, TNT, and more) directly in Hyrule, depth-tested against Hyrule's G-buffer depth and terrain raycasts so blocks, mobs, dropped items, projectiles, and particles occlude naturally behind hills and walls.
+- **First-Person Viewmodel**: Dedicated depth-buffered 1st-person arm, held items, tools, weapons, bows, and shields that never clip into nearby Hyrule geometry.
+- **Live Combat, Mobs & Physics Bridge**:
+  - Syncs Link's position, velocity, HP (quarter-hearts), and stamina with TOTK's guest state.
+  - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
+  - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
+- **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and chat/debug commands.
+- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from a local Minecraft Java `1.21.11` installation and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
 
 ---
 
