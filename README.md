@@ -68,3 +68,9 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 The [`.gitignore`](.gitignore) file explicitly excludes all copyrighted, extracted, or generated artifacts:
 - `assets/mc/` (extracted Minecraft textures, sounds, strings, and manifest)
 - `extracted/`, `rewritten/`, `build/`, `user-data/`, `*.keys`, `analysis/`, `tooling/`, `.venv/`
+
+---
+
+## Upstream & References
+
+- **Base TOTK Native Runtime (`MacNativeGames`)**: https://github.com/ly05010419/MacNativeGames
