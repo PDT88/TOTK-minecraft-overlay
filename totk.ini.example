@@ -522,3 +522,25 @@
 # names each dirty target that stays on the GPU ("fence write-back skipped-drawn-every-frame") and each one over 65536
 # bytes that went back ("over-default"). Raising it costs a copy per such target and wait.
 # wb_fence_limit = 65536
+
+[minecraft]
+# Minecraft Overlay settings (also in the Game tab of the F1 menu; all take effect at once).
+# Allow random Minecraft mob spawns during gameplay (0 or 1).
+# mc_random_mobs = 1
+# Match Hyrule ambient lighting/tint and render enchantment glint on Minecraft blocks and items (0 = classic vanilla
+# brightness, 1 = on).
+# mc_shaders = 1
+# Third-person Minecraft camera distance from the player, in metres (2 to 14).
+# mc_camera_distance = 6
+# First-person camera bobbing while walking, in percent (0 to 100; 0 = off).
+# mc_camera_shake = 0
+# Vertical field of view in Minecraft Mode, in degrees (30 to 110; v1.2.1).
+# mc_fov = 70
+# Mouse look speed in Minecraft Mode on the Minecraft Java scale, in percent (0 to 200; 100 = default).
+# mc_mouse_sens = 100
+# HUD and inventory scale multiplier (0.5 to 2).
+# mc_gui_scale = 1
+# First-person mainhand item scale multiplier (0.4 to 2).
+# mc_mainhand_scale = 1
+# First-person offhand item scale multiplier (0.4 to 2).
+# mc_offhand_scale = 1

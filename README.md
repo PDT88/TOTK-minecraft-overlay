@@ -5,11 +5,11 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 | Platform | Branch | Renderer / Runtime |
 | :--- | :--- | :--- |
 | **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal / `totk-native` |
-| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) *(this branch)* | Vulkan / `totk-pc-recomp` |
+| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` |
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files, Switch keys, or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* (**v1.2.1**) and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) to extract assets and build/run locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You need *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1**) running natively and a local *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) installation to build and run locally.
 
 ---
 
@@ -40,25 +40,66 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ---
 
+## Requirements
+
+- **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU).
+- **Tears of the Kingdom (v1.2.1)**: *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1**) running natively via `totk-pc-recomp`.
+- **Minecraft: Java Edition**: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally for textures, fonts, localization, and sound effects.
+- **Build & Asset Tools**: Build toolchain and dependencies in [`docs/building.md`](docs/building.md), plus Python 3.10+ with `Pillow` (and `ffmpeg.exe` on `PATH`, or `soundfile` + `numpy`).
+
+---
+
 ## Setup & Building (Windows)
 
-1. **Prerequisites**:
-   - Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU).
-   - Build toolchain and dependencies as described in [`docs/building.md`](docs/building.md).
-   - Python 3.10+ with `Pillow` (and `ffmpeg.exe` on `PATH`, or `soundfile` + `numpy`) for Minecraft asset extraction.
+### Quick Setup (recommended)
 
-2. **Extract Minecraft assets (local, gitignored)**:
+1. Check prerequisites and stage status:
+   ```powershell
+   python tools\setup_mc_windows.py --check-only
+   ```
+2. Run the automated setup (creates `.venv` / `.venv-py314`, extracts Minecraft assets into `assets\mc\`, builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping completed stages):
+   ```powershell
+   python tools\setup_mc_windows.py
+   ```
+3. Launch:
+   ```powershell
+   build\v121\totk.exe
+   ```
+
+### Manual Steps
+
+1. **Extract Minecraft assets (local, gitignored)**:
    ```powershell
    python tools\extract_mc_assets.py
    ```
    This auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` JAR under `%APPDATA%\.minecraft\versions\` (preferring stable releases over snapshots; overrideable via `--jar`, `--assets-dir`, `--index`, or `MINECRAFT_JAR`) and populates `assets\mc\`.
 
-3. **Provide TOTK v1.2.1 base files & build**:
-   Follow [`docs/building.md`](docs/building.md) to build `totk-pc-recomp` against your legally dumped **TOTK v1.2.1** game files.
+2. **Build `totk-pc-recomp`**:
+   Follow [`docs/building.md`](docs/building.md) to build `totk-pc-recomp` with your **TOTK v1.2.1** installation.
+
+---
+
+## Controls
+
+| Input | Action |
+| :--- | :--- |
+| `` ` `` / `~` or `F6` | Toggle **Minecraft Mode** / **Zelda Mode** |
+| `F5` or `V` | Cycle camera view (1st-person → 3rd-person back → 3rd-person front) |
+| `E` / `Esc` | Open / close Creative & Survival Inventory |
+| `1`–`9` or Scroll | Select hotbar slot |
+| `Left Click` | Attack / hold to mine block (sword or flint ignites TNT) |
+| `Right Click` | Place block / use item / eat / draw bow / open Crafting Table or Furnace / sleep in bed / raise Shield |
+| `W` (double-tap) | Sprint |
+| `F` | Swap mainhand and offhand |
+| `G` | Quick-toggle Elytra + Totem of Undying vs. Diamond Chestplate + Shield |
+| `Space` | Jump (press again in midair with Elytra to glide; right-click Firework Rocket to boost) |
+| `Q` (`Shift+Q`) | Drop 1 item (or full stack) |
+| `N` | Spawn a Minecraft mob nearby |
+| `F1` | Open / close `totk-pc-recomp` options menu (Minecraft Overlay settings) |
 
 ---
 
 ## Repository Hygiene & License
 
-- [`.gitignore`](.gitignore) and [`tools/check_content.py`](tools/check_content.py) enforce that no Nintendo game files, keys, binaries (`*.exe`, `*.dll`), or extracted Minecraft assets (`assets/mc/`) are committed.
+- [`.gitignore`](.gitignore) and [`tools/check_content.py`](tools/check_content.py) enforce that no Nintendo game files, binaries (`*.exe`, `*.dll`), or extracted Minecraft assets (`assets/mc/`) are committed.
 - Project code is under the [MIT License](LICENSE); third-party components keep their respective licenses ([THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).

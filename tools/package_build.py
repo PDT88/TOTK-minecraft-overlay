@@ -100,6 +100,9 @@ def main():
     n += copy_tree(fonts, out / 'shared-fonts')
     if not a.no_shader_cache and (build / 'shader-cache').is_dir():
         n += copy_tree(build / 'shader-cache', out / 'shader-cache')
+    mc_assets = ROOT / 'assets' / 'mc'
+    if mc_assets.is_dir():
+        n += copy_tree(mc_assets, out / 'assets' / 'mc')
     (out / 'profile').mkdir(exist_ok=True)
     if a.with_romfs:
         (out / 'romfs').mkdir(exist_ok=True)
