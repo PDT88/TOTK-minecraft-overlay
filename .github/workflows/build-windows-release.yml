@@ -38,6 +38,7 @@ jobs:
           install: >-
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-make
+            make
             git
             unzip
 
@@ -60,13 +61,17 @@ jobs:
       - name: Clone pinned MacNativeGames shader list reference
         shell: pwsh
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           git init refs/MacNativeGames
-          git -C refs/MacNativeGames fetch https://github.com/ly05010419/MacNativeGames.git b75be8cfa704df3701e86130c8ced268e79d6b11
+          git -C refs/MacNativeGames remote add origin https://github.com/ly05010419/MacNativeGames.git
+          git -C refs/MacNativeGames fetch origin d1509b4b62211265fad5449cf53cc9f13484ecc5
           git -C refs/MacNativeGames checkout FETCH_HEAD
+          git -C refs/MacNativeGames update-ref refs/remotes/origin/HEAD d1509b4b62211265fad5449cf53cc9f13484ecc5
 
       - name: Build hactool.exe and totk_xlate.exe
         shell: pwsh
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           .venv\Scripts\python tools\build_hactool.py
           .venv\Scripts\python tools\build_xlate.py
 
