@@ -32,7 +32,7 @@ jobs:
       - name: Set up MSYS2 UCRT64
         uses: msys2/setup-msys2@v2
         with:
-          location: C:\msys64
+          release: false
           msystem: UCRT64
           update: true
           install: >-
