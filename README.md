@@ -44,45 +44,71 @@ The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and a
 
 ## Requirements
 
-- **Apple Silicon Mac** running macOS with Xcode Command Line Tools (`xcode-select --install`) and Homebrew.
-- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1)**: your own legally dumped base game (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus unpacked Switch firmware NCAs if your base image is `.nsp` rather than `.xci`)*.
+- **Apple Silicon Mac** (`arm64`) running **macOS 26 (Tahoe)** / **Metal 4**.
+- **Xcode 26 Command Line Tools** (`xcode-select --install`) and **Homebrew**.
+- **Python 3.14+** (`python@3.14` via Homebrew, providing `compression.zstd` for building v1.2.1 RomFS overlays), plus Homebrew packages `opus`, `libvpx`, `ffmpeg`, `llvm`, and `spirv-cross` *(installed automatically by Option A or `make install-deps`)*.
+- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1)**: your own legally dumped base game (`.xci`, `.nsp`, `.xcz`, or `.nsz`), **v1.2.1 update** (`.nsp` or `.nsz`), and `prod.keys` *(plus Switch firmware NCAs as an unpacked directory or `.zip` archive if your base image is `.nsp` or `.nsz` rather than `.xci`/`.xcz`)*.
 - ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)** installed locally.
 
 ---
 
 ## Setup & Usage (macOS)
 
-The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`).
+The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`). *(For Windows x86-64 / Vulkan builds and the `TotK-Setup` GUI installer, see the [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) branch.)*
 
-1. **Clone the repository and install Homebrew dependencies:**
+First, clone the repository:
+```bash
+git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
+cd TOTK-minecraft-overlay
+```
+
+### Option A: Double-click Guided Setup (Finder)
+
+1. In Finder, double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) *(if macOS Gatekeeper warns on first launch, Right-click → **Open**)*.
+2. The script verifies Apple Silicon (`arm64`), macOS 26+, Xcode Command Line Tools, and Homebrew, then installs any missing Homebrew dependencies (`python3 scripts/setup_v121.py --install-deps`).
+3. Pick your TOTK base dump (`.xci`, `.nsp`, `.xcz`, or `.nsz`), **v1.2.1** update (`.nsp` or `.nsz`), `prod.keys` (auto-detected from `~/Library/Application Support/Ryujinx/system/prod.keys` when present), optional Switch firmware (`.zip` or unpacked NCA folder, required when base is `.nsp`/`.nsz`), and optional Minecraft `1.21+` client JAR (or auto-detect `~/Library/Application Support/minecraft`) via native Finder dialogs.
+4. Optionally enable startup shader seed pre-compilation (`--prepare-shaders`) and standalone `.app` bundle creation (`--build-app`, enabled by default).
+5. When setup completes, Finder reveals `build/TOTK Minecraft Overlay.app` — double-click it to play. *(Launching the `.app` stores saves and shader caches under `~/Library/Application Support/MacNativeGames/TOTK/`.)*
+
+### Option B: Terminal / Makefile
+
+1. **Install Homebrew dependencies and check prerequisites:**
    ```bash
-   git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
-   cd TOTK-minecraft-overlay
-   brew install opus libvpx ffmpeg llvm spirv-cross python@3.14
+   make install-deps
+   python3 scripts/setup_v121.py --check-only
    ```
+   - `python@3.14` provides `compression.zstd` for building v1.2.1 RomFS overlays.
    - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
    - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
    - `llvm` is used during NSO rewrite verification.
    - `spirv-cross` is used by the runtime shader translation service.
-   - `python@3.14` provides `compression.zstd` for building v1.2.1 RomFS overlays.
 
-2. **Check prerequisites and run the automated setup:**
+2. **Run the automated setup:**
    ```bash
-   python3 scripts/setup_v121.py --check-only
    make setup-v121 \
      BASE_ROM=/path/to/totk_base.xci \
      UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
      KEYS=/path/to/prod.keys
    ```
-   *(If `BASE_ROM` is an `.nsp` instead of `.xci`, also pass `FIRMWARE=/path/to/firmware_ncas` for Switch shared fonts. `KEYS` defaults to `~/Library/Application Support/Ryujinx/system/prod.keys` if omitted. You can also pass `MC_DIR=...` or `MC_JAR=...` to override the auto-discovered Minecraft `1.21+` / `26.x+` installation. Once extracted/rewritten, bare `make setup-v121` skips completed stages and rebuilds.)*
-
-   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv`, builds patched `hactool` if missing, extracts TOTK v1.2.1 ExeFS/RomFS/shared fonts, prepares v1.2.1 module ELF inventories, builds v1.2.1 RomFS overlays, rewrites & verifies NSOs, auto-discovers your newest Minecraft: Java Edition `1.21+` / `26.x+` installation to populate `assets/mc/`, stages `prebuilt/macos-arm64/totk_xlate` + `spirv-cross` into `build/`, and builds `build/totk-native-v121` (`make runtime-v121`). *(Run `python3 scripts/setup_v121.py --help` for all flags.)*
-
-3. **Launch:**
+   To also pre-compile the startup shader seed (`build/shader-seed`) and package the standalone `.app` bundle in one pass, add `PREPARE_SHADERS=1` and `BUILD_APP=1`:
    ```bash
-   make run-v121
+   make setup-v121 \
+     BASE_ROM=/path/to/totk_base.xcz \
+     UPDATE_NSP=/path/to/totk_update_1.2.1.nsz \
+     KEYS=/path/to/prod.keys \
+     PREPARE_SHADERS=1 \
+     BUILD_APP=1
    ```
-   Saves and `minecraft-base.v1` are stored in `user-data/` by default (override with `PROFILE_DIR=/path/to/profile`).
+   *(Both `BASE_ROM` and `UPDATE_NSP` accept compressed `.xcz` / `.nsz` dumps in addition to `.xci` / `.nsp`. If `BASE_ROM` is `.nsp` or `.nsz`, also pass `FIRMWARE=/path/to/firmware_ncas_or_zip` for Switch shared fonts. `KEYS` defaults to `~/Library/Application Support/Ryujinx/system/prod.keys` if omitted. Optional variables: `INSTALL_DEPS=1`, `PREPARE_SHADERS=1`, `BUILD_APP=1`, `APP_OUT=...`, `MC_DIR=...`, `MC_JAR=...`, `HACTOOL=...`, `JOBS=...`. Once extracted/rewritten, bare `make setup-v121` skips completed stages and rebuilds.)*
+
+   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv` (Python 3.14+), builds patched `hactool` under `tooling/hactool/` if missing, decompresses `.xcz`/`.nsz` dumps in a temporary directory, extracts TOTK v1.2.1 ExeFS/RomFS/shared fonts, prepares v1.2.1 module ELF inventories, builds v1.2.1 RomFS overlays, rewrites & verifies NSOs, auto-discovers your newest Minecraft: Java Edition `1.21+` / `26.x+` installation to populate `assets/mc/`, stages `prebuilt/macos-arm64/totk_xlate` + `spirv-cross` into `build/`, and builds `build/totk-native-v121` (`make runtime-v121`). *(Run `python3 scripts/setup_v121.py --help` for all flags.)*
+
+3. **Package `.app` bundle (if not already built above) and launch:**
+   ```bash
+   make app-v121
+   open "build/TOTK Minecraft Overlay.app"
+   ```
+   *(Or run directly from the terminal without packaging using `make run-v121`, which stores saves and `minecraft-base.v1` in `user-data/` by default — override with `PROFILE_DIR=/path/to/profile`. `make app-v121` invokes [`scripts/build_app_v121.py`](scripts/build_app_v121.py) using APFS copy-on-write clones and accepts optional `APP_OUT=...`, `BASE_ROM=...`, and `KEYS=...` for `AppIcon.icns` extraction.)*
 
 ---
 
