@@ -51,7 +51,16 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ## Setup & Building (Windows)
 
-### Quick Setup (recommended)
+### Option A: `TotK-Setup` GUI Installer *(no build toolchain required)*
+
+When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release](https://github.com/PDT88/TOTK-minecraft-overlay/releases) (or built via the **Build Windows Installer** GitHub Actions workflow in [`.github/workflows/build-windows-release.yml`](.github/workflows/build-windows-release.yml)):
+1. Unpack the zip and double-click `TotK-Setup.exe`.
+2. Select your TOTK base game, **v1.2.1** update, and `prod.keys` (plus an install folder), then click **Start**.
+3. `TotK-Setup.exe` extracts TOTK, builds `totk.exe`, and automatically extracts your local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\` inside the install folder.
+
+---
+
+### Option B: Quick Setup from Source (PowerShell)
 
 1. **Clone the `windows` branch:**
    ```powershell
@@ -59,7 +68,15 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
    cd TOTK-minecraft-overlay
    ```
 
-2. **Install Windows build dependencies** *(skip any you already have; full details in [`docs/building.md`](docs/building.md))* **:**
+2. **Install Windows build dependencies in one command:**
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File tools\install_windows_deps.ps1
+   ```
+   This installs `uv`, `.NET 10 SDK`, `Vulkan SDK`, `FFmpeg`, `Visual Studio Build Tools` (VCTools), and `MSYS2 UCRT64` packages, and adds `Visual Studio\Installer` to your User `PATH`. Then open a **new** PowerShell window in this repo.
+
+   <details>
+   <summary>Manual dependency install commands (if you prefer running step by step)</summary>
+
    ```powershell
    winget install -e --id astral-sh.uv
    winget install -e --id Microsoft.DotNet.SDK.10
@@ -73,21 +90,20 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
      pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-{clang,lld,ninja,gcc,make,pkgconf,sdl3,opus,libvpx,zstd,vulkan-devel,vulkan-memory-allocator,vulkan-validation-layers,shaderc,spirv-tools} base-devel git unzip
      ```
 
-3. **Configure your local TOTK v1.2.1 paths:**
-   ```powershell
-   copy config.example.toml config.local.toml
-   ```
-   Edit `config.local.toml` to point `base`, `updates`, and `keys` (and optionally `firmware` for shared fonts) to your local TOTK v1.2.1 files *(skip if `build\extracted\v121\exefs` is already populated)*.
+   </details>
 
-4. **Verify prerequisites and run the automated setup:**
+3. **Run the automated setup (pointing to your local TOTK v1.2.1 files):**
    ```powershell
-   uv run --python 3.12 tools\setup_mc_windows.py --check-only
-   uv run --python 3.12 tools\setup_mc_windows.py
+   uv run --python 3.12 tools\setup_mc_windows.py `
+     --base C:\path\to\totk_base.xci `
+     --update C:\path\to\totk_update_1.2.1.nsp `
+     --keys C:\path\to\prod.keys
    ```
+   *(If `--keys` is omitted, it auto-checks `%APPDATA%\Ryujinx\system\prod.keys`; or you can copy `config.example.toml` to `config.local.toml` and run `uv run --python 3.12 tools\setup_mc_windows.py` without path flags. Add `--firmware C:\path\to\firmware` for Switch shared fonts, `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache. Run `--check-only` anytime to inspect prerequisite/stage status.)*
+
    This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `hactool.exe` (`tools\build_hactool.py`), extracts TOTK v1.2.1 (and shared fonts if `firmware` is set), builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete.
-   *(Add `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache.)*
 
-5. **Launch:**
+4. **Launch:**
    ```powershell
    build\v121\totk.exe
    ```

@@ -113,6 +113,7 @@
  "warn.kernel_old": "Linux {version} 缺少游戏依赖的写入跟踪功能（需要 6.7 或更新版本）；游戏可能运行得很慢。更新系统即可解决。",
  "warn.dlss_kept": "安装文件夹中已有 DLSS 库（{path}）；安装程序将保留它。",
  "warn.dlss_download_failed": "无法从 {url} 下载 NVIDIA DLSS：{detail}。游戏无需它也能运行；下次运行安装程序时会重试。",
+ "warn.mc_assets_skipped": "未能提取 Minecraft Java 1.21+ 资源（{detail}）。游戏将继续完成安装；安装 Minecraft Java 1.21+ 后重新运行安装程序（或运行 tools/extract_mc_assets.py）即可启用 Minecraft 覆盖层。",
 
  "ui.title": "TotK 安装程序",
  "ui.rebuild_title": "正在为你的模组重新构建游戏",

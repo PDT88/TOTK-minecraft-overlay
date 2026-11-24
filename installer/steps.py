@@ -1354,6 +1354,17 @@ class Cleanup(Step):
             raise InstallError('cleanup.ini_failed', detail=str(e)) from None
         ctx.state['lang'] = ctx.lang
         (dest / 'profile').mkdir(exist_ok=True)
+        mc_script = ctx.layout.tools / 'extract_mc_assets.py'
+        mc_manifest = dest / 'assets' / 'mc' / 'manifest.json'
+        if mc_script.is_file() and not mc_manifest.is_file():
+            py = Path(sys.executable) if ctx.layout.dev else ctx.layout.python
+            r = subprocess.run(
+                [str(py), str(mc_script), '--out', str(dest / 'assets' / 'mc')],
+                capture_output=True, text=True,
+            )
+            if r.returncode:
+                detail = (r.stderr or r.stdout or f'exit {r.returncode}').strip().splitlines()[-1][:300]
+                rep.warning('warn.mc_assets_skipped', detail=detail)
         rep.progress('cleanup', 'temp', force=True)
         for stale in dest.glob('update-merge-*'):
             remove(stale)

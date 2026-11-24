@@ -113,9 +113,9 @@ LLVM_SKIP_SUFFIXES = {'.idl', '.tlb'}
 
 # tools/ files the installer steps run (and what they import), copied from the repo.
 TOOLS_FILES = ['build_game.py', 'build_shaders.py', 'button_icons.py', 'check_content.py', 'check_isa.py', 'extract.py',
-               'hostmem.py', 'make_romfs_patches.py', 'ncz.py', 'pack_shader_cache.py', 'prepare_shaders.py',
-               'romfs_index.py', 'shader_census.py', 'shader_list.py', 'ultrawide_layout.py', 'cheats.py',
-               'exefs_patches.py']
+               'extract_mc_assets.py', 'hostmem.py', 'make_romfs_patches.py', 'ncz.py', 'pack_shader_cache.py',
+               'prepare_shaders.py', 'romfs_index.py', 'shader_census.py', 'shader_list.py', 'ultrawide_layout.py',
+               'cheats.py', 'exefs_patches.py']
 TOOLS_DIRS = ['vendor/macnativegames', 'data']   # data/: expected hashes
 RUNTIME_SUFFIXES = {'.h', '.inc', '.ico'}   # .ico: the installer window icon
 
@@ -274,7 +274,7 @@ def build_python(out):
     copy_tree(tk / 'Lib' / 'tkinter', py / 'tkinter', lambda r: r.startswith('__pycache__'))
     copy_tree(tk / 'tcl', py / 'tcl', lambda r: r.endswith(('.lib', '.sh')) or r.startswith('nmake'))
     check = subprocess.run([str(py / 'python.exe'), '-I', '-c',
-                            'import tkinter, numpy, lz4.block, cryptography, cffi, pycparser, fontTools.ttLib; '
+                            'import tkinter, numpy, lz4.block, cryptography, cffi, pycparser, fontTools.ttLib, PIL.Image, soundfile; '
                             'print("python ok: Tcl", tkinter.Tcl().eval("info patchlevel"), "numpy", numpy.__version__)'],
                            env=clean_env(py), capture_output=True, text=True)
     if check.returncode:
@@ -420,8 +420,20 @@ def profiles():
 def runtime_lib(out, llvm, pgo):
     """Build libtotkrt.a (x86-64-v3) and libtotkrt-v2.a (x86-64-v2) with the folder's llvm/, and copy them, the headers
     and the install-side sources into runtime/. pgo: profiles() of the release."""
-    version = lifted_version()
-    gen = MAIN_ROOT / 'generated' / version
+    version = None
+    gen = None
+    for cand in ('v121', 'v143'):
+        if (MAIN_ROOT / 'generated' / cand / 'layout.json').is_file():
+            version = cand
+            gen = MAIN_ROOT / 'generated' / cand
+            break
+    if gen is None:
+        # CI / game-free build: libtotkrt.a only needs MOD_COUNT == 3 and MOD_MAIN_BASE == 0x7000000000ull
+        sys.path.insert(0, str(ROOT / 'recomp'))
+        import layout as recomp_layout
+        version = 'v121'
+        gen = MAIN_ROOT / 'build' / 'release-check' / 'synthetic-gen'
+        recomp_layout.write([('main', 0x7000000000, 0x5000000), ('subsdk0', 0x7005000000, 0x800000), ('sdk', 0x7005800000, 0x1000000)], gen)
     rt = out / 'runtime'
     # the runtime is the same for every update: any update's profile covers it (the newest update's, as players run it)
     newest = sorted(pgo.items())[-1:]

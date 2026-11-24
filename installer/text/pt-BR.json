@@ -113,6 +113,7 @@
  "warn.kernel_old": "O Linux {version} não tem o rastreamento de escrita de que o jogo depende (6.7 ou mais novo); o jogo pode rodar muito devagar. Atualizar o sistema resolve.",
  "warn.dlss_kept": "Já existe uma biblioteca DLSS na pasta de instalação ({path}); a instalação a mantém.",
  "warn.dlss_download_failed": "Não foi possível baixar o NVIDIA DLSS de {url}: {detail}. O jogo funciona sem ele; a próxima execução da instalação tenta de novo.",
+ "warn.mc_assets_skipped": "Os arquivos do Minecraft Java 1.21+ não foram extraídos ({detail}). O jogo é instalado sem eles; instale o Minecraft Java 1.21+ e execute a instalação novamente (ou execute tools/extract_mc_assets.py) para ativar o overlay de Minecraft.",
 
  "ui.title": "Instalação do TotK",
  "ui.rebuild_title": "Recompilando o jogo para os seus mods",
