@@ -1,8 +1,15 @@
 # One-click Windows build & runtime dependency installer for TOTK Minecraft Overlay.
-# Run from PowerShell:
+# Run from an Administrator PowerShell window:
 #   powershell -ExecutionPolicy Bypass -File tools\install_windows_deps.ps1
 
 $ErrorActionPreference = 'Stop'
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+if (-not $isAdmin) {
+    throw "Please run this script from an Administrator PowerShell window (right-click PowerShell -> 'Run as administrator') so winget can install .NET 10 SDK, Visual Studio Build Tools, and MSYS2 cleanly."
+}
 
 function Install-WingetPackage {
     param(
