@@ -551,9 +551,15 @@ def check_bundle(out):
     errors = [e['id'] for e in events if e['type'] == 'error']
     started = any(e['type'] == 'start' and e.get('release') == (out / 'VERSION').read_text().strip() for e in events)
     steps = [e['phase'] for e in events if e['type'] == 'progress']
-    if errors != ['check.inputs_needed'] or not started or 'inputs' not in steps:
+    ci_no_gpu = (bool(os.environ.get('CI'))
+                 and errors in (['check.vulkan_no_device'], ['check.vulkan_missing'])
+                 and started and 'host' in steps)
+    if not ci_no_gpu and (errors != ['check.inputs_needed'] or not started or 'inputs' not in steps):
         sys.exit(f'bundle check: exit {r.returncode}, errors {errors}, release read {started}\n{r.stdout[-2000:]}\n{r.stderr[-2000:]}')
-    print(f'bundle check: the installer ran the host check from the folder and stopped at the game files (exit {r.returncode})')
+    if ci_no_gpu:
+        print(f'bundle check: the installer ran the host check from the folder and stopped at {errors[0]} on headless CI (exit {r.returncode})')
+    else:
+        print(f'bundle check: the installer ran the host check from the folder and stopped at the game files (exit {r.returncode})')
     r = subprocess.run([py, '-m', 'installer.gui', '--selftest'], cwd=out, env=env, capture_output=True, text=True, timeout=300)
     if r.returncode:
         sys.exit(f'bundle check: window selftest exit {r.returncode}\n{r.stdout[-2000:]}\n{r.stderr[-2000:]}')
