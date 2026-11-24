@@ -42,10 +42,10 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ## Requirements
 
-- **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU).
+- **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU, ~42 GB free disk space for first-time setup).
 - **Tears of the Kingdom (v1.2.1)**: Your own legally dumped *Tears of the Kingdom* base image (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus an unpacked Switch firmware NCA directory if using Switch shared fonts)*.
-- **Minecraft: Java Edition**: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally for textures, fonts, localization, and sound effects.
-- **Build & Asset Tools**: Toolchain listed below and in [`docs/building.md`](docs/building.md) (Python 3.12 + 3.14 are managed automatically via `uv`; `ffmpeg.exe` on `PATH` or `soundfile` + `numpy` is used for audio decoding).
+- **Minecraft: Java Edition**: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally and launched at least once via the launcher so textures, fonts, localization, and audio assets are present under `%APPDATA%\.minecraft\`.
+- **Build & Asset Tools *(Option B only)***: Toolchain listed below and in [`docs/building.md`](docs/building.md) (Python 3.12 + 3.14 are managed automatically via `uv`; `ffmpeg.exe` on `PATH` or `soundfile` + `numpy` is used for audio decoding). Option A (`TotK-Setup.exe`) bundles everything needed and requires no separate toolchain install.
 
 ---
 
@@ -54,9 +54,10 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 ### Option A: `TotK-Setup` GUI Installer *(no build toolchain required)*
 
 When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release](https://github.com/PDT88/TOTK-minecraft-overlay/releases) (or built via the **Build Windows Installer** GitHub Actions workflow in [`.github/workflows/build-windows-release.yml`](.github/workflows/build-windows-release.yml)):
-1. Unpack the zip and double-click `TotK-Setup.exe`.
-2. Select your TOTK base game, **v1.2.1** update, and `prod.keys` (plus an install folder), then click **Start**.
-3. `TotK-Setup.exe` extracts TOTK, builds `totk.exe`, and automatically extracts your local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\` inside the install folder.
+1. Unpack the zip and double-click `TotK-Setup.exe` *(if Windows SmartScreen prompts because the executable is unsigned, click **More info → Run anyway**)*.
+2. Select your local TOTK base game, **v1.2.1** update, `prod.keys`, and an empty install folder (~42 GB free), then click **Start**.
+3. Wait ~10–15 minutes while `TotK-Setup.exe` extracts game files, builds `totk.exe`, pre-warms shaders, and extracts your local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\` automatically (no `ffmpeg` or build toolchain required).
+4. Launch `totk.exe` inside your chosen install folder.
 
 ---
 
@@ -68,7 +69,8 @@ When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release
    cd TOTK-minecraft-overlay
    ```
 
-2. **Install Windows build dependencies in one command:**
+2. **Install Windows build dependencies in one command (run in an Administrator PowerShell window):**
+   Right-click PowerShell → **Run as administrator**, then run:
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\install_windows_deps.ps1
    ```
@@ -99,7 +101,7 @@ When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release
      --update C:\path\to\totk_update_1.2.1.nsp `
      --keys C:\path\to\prod.keys
    ```
-   *(If `--keys` is omitted, it auto-checks `%APPDATA%\Ryujinx\system\prod.keys`; or you can copy `config.example.toml` to `config.local.toml` and run `uv run --python 3.12 tools\setup_mc_windows.py` without path flags. Add `--firmware C:\path\to\firmware` for Switch shared fonts, `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache. Run `--check-only` anytime to inspect prerequisite/stage status.)*
+   *(Or you can copy `config.example.toml` to `config.local.toml` with your local paths and run `uv run --python 3.12 tools\setup_mc_windows.py` without path flags. Add `--firmware C:\path\to\firmware` for Switch shared fonts, `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache. Run `--check-only` anytime to inspect prerequisite/stage status.)*
 
    This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `hactool.exe` (`tools\build_hactool.py`), extracts TOTK v1.2.1 (and shared fonts if `firmware` is set), builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete.
 
