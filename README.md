@@ -9,7 +9,7 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You must already have your own legally obtained copies of *Tears of the Kingdom* (**v1.2.1**) running natively and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) installed locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* (base + **v1.2.1** update + `prod.keys`) and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) to set up and run locally.
 
 ---
 
@@ -58,11 +58,13 @@ The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settin
    ```bash
    git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
    cd TOTK-minecraft-overlay
-   brew install opus libvpx ffmpeg llvm
+   brew install opus libvpx ffmpeg llvm spirv-cross python@3.14
    ```
    - `opus` and `libvpx` are linked by [`Makefile`](Makefile) from `/opt/homebrew/opt/{opus,libvpx}`.
    - `ffmpeg` decodes Minecraft `.ogg` audio to 48 kHz `.wav`.
    - `llvm` is used during NSO rewrite verification.
+   - `spirv-cross` is used by the runtime shader translation service.
+   - `python@3.14` provides `compression.zstd` for building v1.2.1 RomFS overlays.
 
 2. **Check prerequisites and run the automated setup:**
    ```bash
@@ -74,7 +76,7 @@ The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settin
    ```
    *(If `BASE_ROM` is an `.nsp` instead of `.xci`, also pass `FIRMWARE=/path/to/firmware_ncas` for Switch shared fonts. `KEYS` defaults to `~/Library/Application Support/Ryujinx/system/prod.keys` if omitted. You can also pass `MC_DIR=...` or `MC_JAR=...` to override the auto-discovered Minecraft `1.21+` / `26.x+` installation. Once extracted/rewritten, bare `make setup-v121` skips completed stages and rebuilds.)*
 
-   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv`, clones/builds `hactool` if missing, extracts TOTK v1.2.1 ExeFS/RomFS/shared fonts, rewrites & verifies NSOs, auto-discovers your newest Minecraft: Java Edition `1.21+` / `26.x+` installation to populate `assets/mc/`, and builds `build/totk-native-v121` (`make runtime-v121`). *(Run `python3 scripts/setup_v121.py --help` for all flags.)*
+   [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv`, builds patched `hactool` if missing, extracts TOTK v1.2.1 ExeFS/RomFS/shared fonts, prepares v1.2.1 module ELF inventories, builds v1.2.1 RomFS overlays, rewrites & verifies NSOs, auto-discovers your newest Minecraft: Java Edition `1.21+` / `26.x+` installation to populate `assets/mc/`, stages `prebuilt/macos-arm64/totk_xlate` + `spirv-cross` into `build/`, and builds `build/totk-native-v121` (`make runtime-v121`). *(Run `python3 scripts/setup_v121.py --help` for all flags.)*
 
 3. **Launch:**
    ```bash
