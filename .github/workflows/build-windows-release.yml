@@ -1,0 +1,96 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_tag:
+        description: "Optional GitHub release tag (e.g. v1.0.0) to upload TotK-Setup zip to"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Set up MSYS2 UCRT64
+        uses: msys2/setup-msys2@v2
+        with:
+          location: C:\msys64
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-make
+            git
+            unzip
+
+      - name: Add Visual Studio Installer to PATH for vswhere
+        shell: pwsh
+        run: |
+          $vsInst = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
+          if (Test-Path $vsInst) {
+            Add-Content -Path $env:GITHUB_PATH -Value $vsInst
+          }
+
+      - name: Create Python 3.12 and 3.14 environments
+        shell: pwsh
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/Scripts/python.exe -r tools/requirements.txt
+          uv venv --python 3.14 .venv-py314
+          uv pip install --python .venv-py314/Scripts/python.exe -r tools/requirements-py314.txt
+
+      - name: Clone pinned MacNativeGames shader list reference
+        shell: pwsh
+        run: |
+          git init refs/MacNativeGames
+          git -C refs/MacNativeGames fetch https://github.com/ly05010419/MacNativeGames.git b75be8cfa704df3701e86130c8ced268e79d6b11
+          git -C refs/MacNativeGames checkout FETCH_HEAD
+
+      - name: Build hactool.exe and totk_xlate.exe
+        shell: pwsh
+        run: |
+          .venv\Scripts\python tools\build_hactool.py
+          .venv\Scripts\python tools\build_xlate.py
+
+      - name: Build TotK-Setup release bundle
+        shell: pwsh
+        run: |
+          .venv-py314\Scripts\python tools\make_release.py --out build\release\TotK-Setup --zip build\release\TOTK-minecraft-overlay-windows-setup.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TOTK-minecraft-overlay-windows-setup
+          path: build/release/TOTK-minecraft-overlay-windows-setup.zip
+
+      - name: Upload to GitHub Release (if tag push or upload_tag set)
+        if: startsWith(github.ref, 'refs/tags/') || inputs.upload_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.upload_tag }}"
+          if (-not $tag -and "${{ github.ref }}".StartsWith("refs/tags/")) {
+            $tag = "${{ github.ref_name }}"
+          }
+          if ($tag) {
+            gh release upload $tag build\release\TOTK-minecraft-overlay-windows-setup.zip --clobber
+          }
