@@ -80,10 +80,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", default="v121", help="TOTK version (default: v121)")
     ap.add_argument("--cpu", choices=("v2", "v3"), default="v3", help="x86-64 target level for build_game.py (default: v3)")
+    ap.add_argument("--firmware", type=Path, help="Optional Switch firmware NCA dir for shared fonts (tools/extract_fonts.py)")
     ap.add_argument("--mc-jar", type=Path, help="Optional explicit Minecraft 1.21+ / 26.x+ client JAR")
     ap.add_argument("--mc-assets-dir", type=Path, help="Optional explicit .minecraft/assets directory")
     ap.add_argument("--mc-index", type=Path, help="Optional explicit Minecraft asset index JSON")
-    ap.add_argument("--prepare-shaders", action="store_true", help="Also run tools/prepare_shaders.py after building")
+    ap.add_argument("--prepare-shaders", action="store_true", help="Also fetch refs (if needed) and run tools/prepare_shaders.py after building")
     ap.add_argument("--skip-mc", action="store_true", help="Skip Minecraft asset extraction")
     ap.add_argument("--skip-build", action="store_true", help="Skip lifting and compiling totk.exe")
     ap.add_argument("--check-only", action="store_true", help="Check prerequisites and stage status without running")
@@ -92,13 +93,16 @@ def main() -> int:
     ver = args.version
     exe_name = "totk.exe" if os.name == "nt" else "totk"
     xlate_name = "totk_xlate.exe" if os.name == "nt" else "totk_xlate"
+    hactool_name = "hactool.exe" if os.name == "nt" else "hactool"
 
     venv312 = ROOT / ".venv"
     venv314 = ROOT / ".venv-py314"
     py312 = venv_python(venv312)
     py314 = venv_python(venv314)
     cfg_local = ROOT / "config.local.toml"
+    hactool_bin = ROOT / "toolchain" / "hactool" / hactool_name
     exefs_dir = ROOT / "build" / "extracted" / ver / "exefs"
+    fonts_manifest = ROOT / "build" / "extracted" / "firmware" / "shared-fonts" / "manifest.json"
     xlate_bin = ROOT / "build" / "xlate" / xlate_name
     mc_manifest = ROOT / "assets" / "mc" / "manifest.json"
     romfs_patches = ROOT / "build" / ver / "romfs-patches"
@@ -107,7 +111,9 @@ def main() -> int:
     have_venv312 = py312.is_file()
     have_venv314 = py314.is_file()
     have_cfg = cfg_local.is_file()
+    have_hactool = hactool_bin.is_file()
     have_exefs = exefs_dir.is_dir() and any(exefs_dir.iterdir())
+    have_fonts = fonts_manifest.is_file()
     have_xlate = xlate_bin.is_file()
     have_mc = mc_manifest.is_file()
     have_romfs_patches = romfs_patches.is_dir()
@@ -123,7 +129,9 @@ def main() -> int:
             (".venv (Python 3.12)", have_venv312),
             (".venv-py314 (Python 3.14)", have_venv314),
             ("config.local.toml", have_cfg),
+            (f"toolchain/hactool/{hactool_name}", have_hactool),
             (f"build/extracted/{ver}/exefs", have_exefs),
+            ("build/extracted/firmware/shared-fonts", have_fonts),
             (f"build/xlate/{xlate_name}", have_xlate),
             ("assets/mc (Minecraft assets)", have_mc),
             (f"build/{ver}/romfs-patches", have_romfs_patches),
@@ -182,16 +190,40 @@ def main() -> int:
     if args.skip_build:
         return 0
 
-    # 3. Extract TOTK files if needed
+    # 3. Build hactool & extract TOTK files if needed
     if not have_exefs:
         if not have_cfg:
             raise SystemExit(
                 "ERROR: config.local.toml not found. Copy config.example.toml to config.local.toml "
                 "and configure your local TOTK v1.2.1 paths (see docs/building.md)."
             )
+        if not have_hactool:
+            run_step(f"Building {hactool_name}", [str(py312), "tools/build_hactool.py"])
+        else:
+            print(f"==> [skip] toolchain/hactool/{hactool_name} already built")
         run_step(f"Extracting TOTK {ver} files", [str(py314), "tools/extract.py"])
     else:
         print(f"==> [skip] build/extracted/{ver}/exefs already present")
+
+    # 3b. Extract Switch shared fonts when firmware is provided
+    if not have_fonts and (args.firmware or have_cfg):
+        should_extract_fonts = bool(args.firmware)
+        if not should_extract_fonts and have_cfg:
+            try:
+                import tomllib
+                cfg_data = tomllib.loads(cfg_local.read_text(encoding="utf-8"))
+                should_extract_fonts = bool(cfg_data.get("input", {}).get("firmware"))
+            except Exception:
+                should_extract_fonts = False
+        if should_extract_fonts:
+            fonts_cmd = [str(py314), "tools/extract_fonts.py"]
+            if args.firmware:
+                fonts_cmd += ["--firmware", str(args.firmware)]
+            run_step("Extracting Switch shared fonts", fonts_cmd)
+        else:
+            print("==> [skip] shared fonts (optional; set input.firmware or pass --firmware for CJK fonts)")
+    elif have_fonts:
+        print("==> [skip] build/extracted/firmware/shared-fonts already present")
 
     # 4. Shader translator
     if not have_xlate:
@@ -221,6 +253,11 @@ def main() -> int:
     run_step(f"Building build/{ver}/{exe_name}", build_cmd)
 
     if args.prepare_shaders:
+        refs_mng = ROOT / "refs" / "MacNativeGames"
+        if not refs_mng.is_dir():
+            msys_bash = Path(r"C:\msys64\usr\bin\bash.exe")
+            bash_bin = str(msys_bash) if msys_bash.is_file() else "bash"
+            run_step("Fetching shader list reference (tools/fetch_refs.sh)", [bash_bin, "tools/fetch_refs.sh"])
         run_step(
             f"Preparing shaders for build/{ver}",
             [str(py314), "tools/prepare_shaders.py", f"build/{ver}", "--version", ver],

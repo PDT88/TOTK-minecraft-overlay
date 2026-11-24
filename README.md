@@ -43,9 +43,9 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 ## Requirements
 
 - **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU).
-- **Tears of the Kingdom (v1.2.1)**: *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1**) running natively via `totk-pc-recomp`.
+- **Tears of the Kingdom (v1.2.1)**: Your own legally dumped *Tears of the Kingdom* base image (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus an unpacked Switch firmware NCA directory if using Switch shared fonts)*.
 - **Minecraft: Java Edition**: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally for textures, fonts, localization, and sound effects.
-- **Build & Asset Tools**: Build toolchain and dependencies in [`docs/building.md`](docs/building.md), plus Python 3.10+ with `Pillow` (and `ffmpeg.exe` on `PATH`, or `soundfile` + `numpy`).
+- **Build & Asset Tools**: Toolchain listed below and in [`docs/building.md`](docs/building.md) (Python 3.12 + 3.14 are managed automatically via `uv`; `ffmpeg.exe` on `PATH` or `soundfile` + `numpy` is used for audio decoding).
 
 ---
 
@@ -67,20 +67,25 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
    winget install -e --id Gyan.FFmpeg
    winget install -e --id Microsoft.VisualStudio.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
    ```
-   Also install [MSYS2](https://www.msys2.org/) to `C:\msys64`, open **MSYS2 UCRT64**, and run:
-   ```sh
-   pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-{clang,lld,ninja,gcc,make,pkgconf,sdl3,opus,libvpx,zstd,vulkan-devel,vulkan-memory-allocator,vulkan-validation-layers,shaderc,spirv-tools} base-devel git unzip
-   ```
+   - Ensure `C:\Program Files (x86)\Microsoft Visual Studio\Installer` is on your user `PATH` so `.NET` NativeAOT (`tools\build_xlate.py`) can locate `vswhere.exe`.
+   - Install [MSYS2](https://www.msys2.org/) to `C:\msys64`, open **MSYS2 UCRT64**, run `pacman -Syuu` (twice if the core updates and exits), then run:
+     ```sh
+     pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-{clang,lld,ninja,gcc,make,pkgconf,sdl3,opus,libvpx,zstd,vulkan-devel,vulkan-memory-allocator,vulkan-validation-layers,shaderc,spirv-tools} base-devel git unzip
+     ```
 
-3. **Configure your local TOTK v1.2.1 setup:**
-   Copy [`config.example.toml`](config.example.toml) to `config.local.toml` and point it to your local TOTK v1.2.1 paths *(or skip if `build\extracted\v121\exefs` is already populated)*.
+3. **Configure your local TOTK v1.2.1 paths:**
+   ```powershell
+   copy config.example.toml config.local.toml
+   ```
+   Edit `config.local.toml` to point `base`, `updates`, and `keys` (and optionally `firmware` for shared fonts) to your local TOTK v1.2.1 files *(skip if `build\extracted\v121\exefs` is already populated)*.
 
 4. **Verify prerequisites and run the automated setup:**
    ```powershell
    python tools\setup_mc_windows.py --check-only
    python tools\setup_mc_windows.py
    ```
-   This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete. *(Add `--cpu v2` for CPUs without AVX2/FMA.)*
+   This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `hactool.exe` (`tools\build_hactool.py`), extracts TOTK v1.2.1 (and shared fonts if `firmware` is set), builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete.
+   *(Add `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache.)*
 
 5. **Launch:**
    ```powershell
@@ -91,12 +96,12 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 1. **Extract Minecraft assets (local, gitignored)**:
    ```powershell
-   python tools\extract_mc_assets.py
+   .venv\Scripts\python tools\extract_mc_assets.py
    ```
    This auto-discovers your newest installed Minecraft: Java Edition `1.21+` / `26.x+` JAR under `%APPDATA%\.minecraft\versions\` (preferring stable releases over snapshots; overrideable via `--jar`, `--assets-dir`, `--index`, or `MINECRAFT_JAR`) and populates `assets\mc\`.
 
-2. **Build `totk-pc-recomp`**:
-   Follow [`docs/building.md`](docs/building.md) to build `totk-pc-recomp` with your **TOTK v1.2.1** installation.
+2. **Build `hactool`, extract, and compile `totk-pc-recomp`**:
+   Follow [`docs/building.md`](docs/building.md) (`tools\build_hactool.py`, `tools\extract.py`, `tools\extract_fonts.py`, `tools\build_xlate.py`, `recomp\gen.py`, `tools\make_romfs_patches.py`, `tools\build_game.py`, and optionally `tools\prepare_shaders.py`).
 
 ---
 
