@@ -61,7 +61,7 @@ jobs:
         shell: pwsh
         run: |
           git init refs/MacNativeGames
-          git -C refs/MacNativeGames fetch --depth 1 https://github.com/ly05010419/MacNativeGames.git b75be8cfa704df3701e86130c8ced268e79d6b11
+          git -C refs/MacNativeGames fetch https://github.com/ly05010419/MacNativeGames.git b75be8cfa704df3701e86130c8ced268e79d6b11
           git -C refs/MacNativeGames checkout FETCH_HEAD
 
       - name: Build hactool.exe and totk_xlate.exe

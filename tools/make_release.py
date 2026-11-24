@@ -250,7 +250,10 @@ def tcltk_files():
     (src / name).rename(msi)
     shutil.rmtree(dest, ignore_errors=True)
     # Administrative image: copies the MSI's files to TARGETDIR, installs nothing and shows no window.
-    run(['msiexec', '/a', msi, '/qn', f'TARGETDIR={dest}'])
+    # Pass a raw command string so TARGETDIR="..." isn't wrapped as "TARGETDIR=..." when paths contain spaces.
+    cmd = f'msiexec /a "{msi}" /qn TARGETDIR="{dest}"'
+    print('+', cmd, flush=True)
+    subprocess.run(cmd, check=True)
     if not (dest / 'DLLs' / '_tkinter.pyd').is_file():
         sys.exit(f'{dest}: no _tkinter.pyd after msiexec /a')
     return dest
