@@ -9,7 +9,7 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
-> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You need *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1**) running natively and a local *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) installation to build and run locally.
+> **Note on Copyrighted Assets:** This repository contains **only** original source code, shaders, build scripts, and documentation. No Nintendo game files or Mojang/Minecraft assets are included. You must supply your own legally obtained copies of *Tears of the Kingdom* (base + **v1.2.1** update + `prod.keys`) and *Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`) to build and run locally.
 
 ---
 
@@ -81,8 +81,8 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 4. **Verify prerequisites and run the automated setup:**
    ```powershell
-   python tools\setup_mc_windows.py --check-only
-   python tools\setup_mc_windows.py
+   uv run --python 3.12 tools\setup_mc_windows.py --check-only
+   uv run --python 3.12 tools\setup_mc_windows.py
    ```
    This creates `.venv` / `.venv-py314`, extracts local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\`, builds `hactool.exe` (`tools\build_hactool.py`), extracts TOTK v1.2.1 (and shared fonts if `firmware` is set), builds `totk_xlate.exe`, lifts `v121`, and compiles `build\v121\totk.exe`, skipping any stage that is already complete.
    *(Add `--cpu v2` for CPUs without AVX2/FMA, or `--prepare-shaders` to fetch shader refs and pre-warm the shader cache.)*
