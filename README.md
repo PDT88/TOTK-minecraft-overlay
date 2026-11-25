@@ -1,11 +1,11 @@
-# TOTK Minecraft Overlay (`TOTK-minecraft-overlay`) — Windows
+# TOTK Minecraft Overlay (`TOTK-minecraft-overlay`)
 
 A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1** — `totk-pc-recomp` on Windows x86-64 / Vulkan, and `totk-native` on macOS ARM64 / Metal 4).
 
 | Platform | Branch | Renderer / Runtime | Easiest Way to Install |
 | :--- | :--- | :--- | :--- |
-| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
-| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
+| **Windows (x86-64)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
+| **macOS (Apple Silicon)** | [`macos`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/macos) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
@@ -16,7 +16,7 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 ## Quick Start
 
 - **On Windows?** Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest), unzip it, and run `TotK-Setup.exe` (no separate build toolchain or `ffmpeg` required). Jump to [**Setup & Building (Windows)**](#setup--building-windows).
-- **On macOS?** See the [**macOS README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main#setup--usage-macos) for the guided `Setup TOTK Minecraft Overlay.command` flow.
+- **On macOS?** See the [**macOS README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/macos#setup--usage-macos) for the guided `Setup TOTK Minecraft Overlay.command` flow.
 
 ---
 
@@ -43,9 +43,9 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ### Option B: Quick Setup from Source (PowerShell)
 
-1. **Clone the `windows` branch:**
+1. **Clone the repository:**
    ```powershell
-   git clone -b windows https://github.com/PDT88/TOTK-minecraft-overlay.git
+   git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
    cd TOTK-minecraft-overlay
    ```
 
