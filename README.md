@@ -1,11 +1,11 @@
 # TOTK Minecraft Overlay (`TOTK-minecraft-overlay`) — Windows
 
-A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend of Zelda: Tears of the Kingdom* (`totk-pc-recomp` on Windows x86-64 / Vulkan, and `totk-native` on macOS ARM64 / Metal).
+A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1** — `totk-pc-recomp` on Windows x86-64 / Vulkan, and `totk-native` on macOS ARM64 / Metal 4).
 
-| Platform | Branch | Renderer / Runtime |
-| :--- | :--- | :--- |
-| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal / `totk-native` |
-| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` |
+| Platform | Branch | Renderer / Runtime | Easiest Way to Install |
+| :--- | :--- | :--- | :--- |
+| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
+| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
@@ -13,51 +13,31 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ---
 
-## Features
+## Quick Start
 
-- **Seamless Mode & Camera Switching**: Toggle between **Minecraft Mode** and **Zelda Mode** on the fly, with first-person, third-person back, and third-person front views, raw mouse-look camera capture, and automatic hiding/restoring of Link's 3D body and Zelda's native HUD.
-- **Depth-Tested 3D World in Hyrule**: Place and mine blocks (wood, stone, obsidian, glass, torches, water, lava, crafting tables, furnaces, beds, TNT, and more) directly in Hyrule, depth-tested against Hyrule's G-buffer depth via Vulkan so blocks, mobs, dropped items, projectiles, and particles occlude naturally behind hills and walls.
-- **First-Person Viewmodel**: Dedicated depth-buffered 1st-person arm, held items, tools, weapons, bows, and shields that never clip into nearby Hyrule geometry.
-- **Live Combat, Mobs & Physics Bridge**:
-  - Syncs Link's position, velocity, HP (quarter-hearts), and stamina with TOTK's guest state.
-  - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
-  - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
-- **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and in-game settings integration.
-- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from a local Minecraft: Java Edition installation and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
+- **On Windows?** Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest), unzip it, and run `TotK-Setup.exe` (no separate build toolchain or `ffmpeg` required). Jump to [**Setup & Building (Windows)**](#setup--building-windows).
+- **On macOS?** See the [**macOS README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main#setup--usage-macos) for the guided `Setup TOTK Minecraft Overlay.command` flow.
 
 ---
 
-## Architecture (Windows / Vulkan)
+## Requirements (Windows)
 
-| Component | Files | Purpose |
-| :--- | :--- | :--- |
-| **Overlay Controller** | [`runtime/minecraft_overlay.h`](runtime/minecraft_overlay.h), [`runtime/minecraft_overlay.c`](runtime/minecraft_overlay.c) | Entrypoints for lifecycle, input/mouse capture, chat/debug commands, and frame coordination. |
-| **Core Simulation** | [`runtime/mc_engine.h`](runtime/mc_engine.h), [`runtime/mc_engine.c`](runtime/mc_engine.c), [`runtime/mc_snapshot.h`](runtime/mc_snapshot.h) | Voxel blocks, mobs, primed TNT, dropped items, projectiles, particles, crafting/smelting, HUD layout, and thread-safe POD `McRenderSnapshot` emission. |
-| **TOTK Runtime Bridge** | [`runtime/mc_totk_bridge.h`](runtime/mc_totk_bridge.h), [`runtime/mc_totk_bridge.c`](runtime/mc_totk_bridge.c) | Reads/writes Link's pose, HP, stamina, camera matrix, terrain raycasts, wall-sweep collision, active actors/enemies, and incoming damage on the guest frame thread (TOTK v1.2.1). |
-| **Vulkan Renderer & Shaders** | [`runtime/mc_vulkan_render.h`](runtime/mc_vulkan_render.h), [`runtime/mc_vulkan_render.c`](runtime/mc_vulkan_render.c), [`runtime/shaders/`](runtime/shaders/) | Multi-pass Vulkan rendering (`mc_world_*`, `mc_gui_*`, `mc_probe_luma_cs`): 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
-| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs from `%APPDATA%\.minecraft\` into `assets/mc/` (gitignored). |
-| **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
-
----
-
-## Requirements
-
-- **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU, ~42 GB free disk space for first-time setup).
-- **Tears of the Kingdom (v1.2.1)**: Your own legally dumped *Tears of the Kingdom* base image (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus an unpacked Switch firmware NCA directory if using Switch shared fonts)*.
-- **Minecraft: Java Edition**: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally and launched at least once via the launcher so textures, fonts, localization, and audio assets are present under `%APPDATA%\.minecraft\`.
-- **Build & Asset Tools *(Option B only)***: Toolchain listed below and in [`docs/building.md`](docs/building.md) (Python 3.12 + 3.14 are managed automatically via `uv`; `ffmpeg.exe` on `PATH` or `soundfile` + `numpy` is used for audio decoding). Option A (`TotK-Setup.exe`) bundles everything needed and requires no separate toolchain install.
+- **OS & Hardware**: Windows 10 or later (x86-64 CPU with SSE4.2+, Vulkan 1.3 GPU, **~42 GB free disk space** for first-time setup).
+- ***Tears of the Kingdom* (v1.2.1)**: Your own legally dumped *Tears of the Kingdom* base image (`.xci` or `.nsp`), **v1.2.1 update** (`.nsp`), and `prod.keys` *(plus an unpacked Switch firmware NCA directory if using Switch shared fonts)*.
+- ***Minecraft: Java Edition***: Version `1.21+` (including `1.21.x` and `26.x+`) installed locally and **launched at least once** via the launcher so textures, fonts, localization, and audio assets are present under `%APPDATA%\.minecraft\`.
+- **Build & Asset Tools *(Option B from source only)***: Toolchain listed below and in [`docs/building.md`](docs/building.md) (Python 3.12 + 3.14 are managed automatically via `uv`; `ffmpeg.exe` on `PATH` or `soundfile` + `numpy` is used for audio decoding). **Option A (`TotK-Setup.exe`) bundles everything needed and requires no separate toolchain install.**
 
 ---
 
 ## Setup & Building (Windows)
 
-### Option A: `TotK-Setup` GUI Installer *(no build toolchain required)*
+### Option A: `TotK-Setup` GUI Installer *(Recommended — No Build Toolchain Required)*
 
-When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release](https://github.com/PDT88/TOTK-minecraft-overlay/releases) (or built via the **Build Windows Installer** GitHub Actions workflow in [`.github/workflows/build-windows-release.yml`](.github/workflows/build-windows-release.yml)):
-1. Unpack the zip and double-click `TotK-Setup.exe` *(if Windows SmartScreen prompts because the executable is unsigned, click **More info → Run anyway**)*.
-2. Select your local TOTK base game, **v1.2.1** update, `prod.keys`, and an empty install folder (~42 GB free), then click **Start**.
-3. Wait ~10–15 minutes while `TotK-Setup.exe` extracts game files, builds `totk.exe`, pre-warms shaders, and extracts your local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\` automatically (no `ffmpeg` or build toolchain required).
-4. Launch `totk.exe` inside your chosen install folder.
+1. Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) *(or build it via the **Build Windows Installer** workflow in [`.github/workflows/build-windows-release.yml`](.github/workflows/build-windows-release.yml))*.
+2. Unpack the ZIP and double-click `TotK-Setup.exe` *(if Windows SmartScreen prompts because the executable is unsigned, click **More info → Run anyway**)*.
+3. Select your local TOTK base game, **v1.2.1** update, `prod.keys`, and an empty install folder (~42 GB free), then click **Start**.
+4. Wait ~10–15 minutes while `TotK-Setup.exe` extracts game files, builds `totk.exe`, pre-warms shaders, and extracts your local Minecraft Java `1.21+` / `26.x+` assets into `assets\mc\` automatically (no `ffmpeg` or build toolchain required).
+5. Launch `totk.exe` inside your chosen install folder.
 
 ---
 
@@ -140,6 +120,33 @@ When `TOTK-minecraft-overlay-windows-setup.zip` is attached to a [GitHub Release
 | `Q` (`Shift+Q`) | Drop 1 item (or full stack) |
 | `N` | Spawn a Minecraft mob nearby |
 | `F1` | Open / close `totk-pc-recomp` options menu (Minecraft Overlay settings) |
+
+---
+
+## Features
+
+- **Seamless Mode & Camera Switching**: Toggle between **Minecraft Mode** and **Zelda Mode** on the fly, with first-person, third-person back, and third-person front views, raw mouse-look camera capture, and automatic hiding/restoring of Link's 3D body and Zelda's native HUD.
+- **Depth-Tested 3D World in Hyrule**: Place and mine blocks (wood, stone, obsidian, glass, torches, water, lava, crafting tables, furnaces, beds, TNT, and more) directly in Hyrule, depth-tested against Hyrule's G-buffer depth via Vulkan so blocks, mobs, dropped items, projectiles, and particles occlude naturally behind hills and walls.
+- **First-Person Viewmodel**: Dedicated depth-buffered 1st-person arm, held items, tools, weapons, bows, and shields that never clip into nearby Hyrule geometry.
+- **Live Combat, Mobs & Physics Bridge**:
+  - Syncs Link's position, velocity, HP (quarter-hearts), and stamina with TOTK's guest state.
+  - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
+  - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
+- **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and in-game settings integration.
+- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from a local Minecraft: Java Edition installation and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
+
+---
+
+## Architecture (Windows / Vulkan)
+
+| Component | Files | Purpose |
+| :--- | :--- | :--- |
+| **Overlay Controller** | [`runtime/minecraft_overlay.h`](runtime/minecraft_overlay.h), [`runtime/minecraft_overlay.c`](runtime/minecraft_overlay.c) | Entrypoints for lifecycle, input/mouse capture, chat/debug commands, and frame coordination. |
+| **Core Simulation** | [`runtime/mc_engine.h`](runtime/mc_engine.h), [`runtime/mc_engine.c`](runtime/mc_engine.c), [`runtime/mc_snapshot.h`](runtime/mc_snapshot.h) | Voxel blocks, mobs, primed TNT, dropped items, projectiles, particles, crafting/smelting, HUD layout, and thread-safe POD `McRenderSnapshot` emission. |
+| **TOTK Runtime Bridge** | [`runtime/mc_totk_bridge.h`](runtime/mc_totk_bridge.h), [`runtime/mc_totk_bridge.c`](runtime/mc_totk_bridge.c) | Reads/writes Link's pose, HP, stamina, camera matrix, terrain raycasts, wall-sweep collision, active actors/enemies, and incoming damage on the guest frame thread (TOTK v1.2.1). |
+| **Vulkan Renderer & Shaders** | [`runtime/mc_vulkan_render.h`](runtime/mc_vulkan_render.h), [`runtime/mc_vulkan_render.c`](runtime/mc_vulkan_render.c), [`runtime/shaders/`](runtime/shaders/) | Multi-pass Vulkan rendering (`mc_world_*`, `mc_gui_*`, `mc_probe_luma_cs`): 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
+| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs from `%APPDATA%\.minecraft\` into `assets/mc/` (gitignored). |
+| **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
 
 ---
 
