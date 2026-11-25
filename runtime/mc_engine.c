@@ -2785,8 +2785,6 @@ void mc_engine_init(McEngine *eng) {
 
     setup_default_loadout(eng);
     load_base(eng);
-    grant_effect(eng, MC_EFF_RESISTANCE, 0, 600.0f);
-    grant_effect(eng, MC_EFF_FIRE_RESISTANCE, 0, 600.0f);
 
     if (mc_assets_ready() == 0) {
         mc_assets_init(NULL);
