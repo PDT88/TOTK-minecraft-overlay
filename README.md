@@ -1,11 +1,11 @@
 # TOTK Minecraft Overlay (`TOTK-minecraft-overlay`)
 
-A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend of Zelda: Tears of the Kingdom* (`totk-native` on macOS ARM64 / Metal, and `totk-pc-recomp` on Windows x86-64 / Vulkan).
+A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend of Zelda: Tears of the Kingdom* (**v1.2.1** — `totk-native` on macOS ARM64 / Metal 4, and `totk-pc-recomp` on Windows x86-64 / Vulkan).
 
-| Platform | Branch | Renderer / Runtime |
-| :--- | :--- | :--- |
-| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal / `totk-native` |
-| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` |
+| Platform | Branch | Renderer / Runtime | Easiest Way to Install |
+| :--- | :--- | :--- | :--- |
+| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
+| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
@@ -13,67 +13,68 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ---
 
-## Features
+## Quick Start
 
-- **Seamless Mode & Camera Switching**: Toggle between **Minecraft Mode** and **Zelda Mode** on the fly, with first-person, third-person back, and third-person front views, mouse-look camera capture, and automatic hiding/restoring of Link's 3D body and Zelda's native HUD.
-- **Depth-Tested 3D World in Hyrule**: Place and mine blocks (wood, stone, obsidian, glass, torches, water, lava, crafting tables, furnaces, beds, TNT, and more) directly in Hyrule, depth-tested against Hyrule's G-buffer depth and terrain raycasts so blocks, mobs, dropped items, projectiles, and particles occlude naturally behind hills and walls.
-- **First-Person Viewmodel**: Dedicated depth-buffered 1st-person arm, held items, tools, weapons, bows, and shields that never clip into nearby Hyrule geometry.
-- **Live Combat, Mobs & Physics Bridge**:
-  - Syncs Link's position, velocity, HP (quarter-hearts), and stamina with TOTK's guest state.
-  - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
-  - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
-- **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and chat/debug commands.
-- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from any local Minecraft: Java Edition `1.21+` installation (including `1.21.x` and `26.x+` releases) and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
+- **On macOS?** Download `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) (or clone `main`), install Xcode Command Line Tools + Homebrew once, then double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) to build **`TOTK Minecraft Overlay.app`**. Jump to [**Setup & Usage (macOS)**](#setup--usage-macos).
+- **On Windows?** Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest), unzip it, and run `TotK-Setup.exe` (no build toolchain required). See the [**Windows README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows#setup--building-windows).
 
 ---
 
-## Architecture
+## Requirements & What You Need (macOS)
 
-The overlay runs a self-contained Minecraft voxel, entity, inventory, HUD, and audio engine directly inside the TOTK runtime, synchronized with Hyrule's world, physics, camera, and combat systems:
+### System & One-Time Tools
 
-| Component | Files | Purpose |
-| :--- | :--- | :--- |
-| **Overlay Controller** | [`runtime/minecraft_overlay.h`](runtime/minecraft_overlay.h), [`runtime/minecraft_overlay.c`](runtime/minecraft_overlay.c) | Entrypoints for lifecycle, input/mouse capture, chat/debug commands, and frame coordination. |
-| **Core Simulation** | [`runtime/mc_engine.h`](runtime/mc_engine.h), [`runtime/mc_engine.c`](runtime/mc_engine.c), [`runtime/mc_snapshot.h`](runtime/mc_snapshot.h) | Voxel blocks, mobs, primed TNT, dropped items, projectiles, particles, crafting/smelting, HUD layout, and thread-safe POD `McRenderSnapshot` emission. |
-| **TOTK Runtime Bridge** | [`runtime/mc_totk_bridge.h`](runtime/mc_totk_bridge.h), [`runtime/mc_totk_bridge.c`](runtime/mc_totk_bridge.c) | Reads/writes Link's pose, HP, stamina, camera matrix, terrain raycasts, wall-sweep collision, active actors/enemies, and incoming damage on the guest frame thread. |
-| **Metal Renderer** | [`runtime/mc_metal_render.h`](runtime/mc_metal_render.h), [`runtime/mc_metal_render.m`](runtime/mc_metal_render.m) | Multi-pass Metal rendering: 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
-| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Auto-discovers installed Minecraft Java `1.21+` versions and extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs into `assets/mc/` (gitignored). |
-| **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
+- **Mac & OS**: Apple Silicon Mac (`arm64`) running **macOS 26 (Tahoe)** / **Metal 4**.
+- **Free Disk Space**: **~25–30 GB** free *(plus ~18 GB of temporary free space during setup if decompressing `.xcz` / `.nsz` dumps)*.
+- **Xcode 26 Command Line Tools** *(one-time install in Terminal)*:
+  ```bash
+  xcode-select --install
+  ```
+- **Homebrew** *(one-time install if you don't have it yet — see [brew.sh](https://brew.sh))*:
+  ```bash
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  ```
+- *(Python 3.14+ and native build/audio tools — `python@3.14`, `opus`, `libvpx`, `ffmpeg`, `llvm`, and `spirv-cross` — are installed automatically by [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) or `make install-deps`.)*
 
----
+### Files You Need to Supply
 
-## Requirements
+Have these legal files ready on your Mac before starting:
 
-- **Apple Silicon Mac** (`arm64`) running **macOS 26 (Tahoe)** / **Metal 4**.
-- **Xcode 26 Command Line Tools** (`xcode-select --install`) and **Homebrew**.
-- **Python 3.14+** (`python@3.14` via Homebrew, providing `compression.zstd` for building v1.2.1 RomFS overlays), plus Homebrew packages `opus`, `libvpx`, `ffmpeg`, `llvm`, and `spirv-cross` *(installed automatically by Option A or `make install-deps`)*.
-- ***The Legend of Zelda: Tears of the Kingdom* (v1.2.1)**: your own legally dumped base game (`.xci`, `.nsp`, `.xcz`, or `.nsz`), **v1.2.1 update** (`.nsp` or `.nsz`), and `prod.keys` *(plus Switch firmware NCAs as an unpacked directory or `.zip` archive if your base image is `.nsp` or `.nsz` rather than `.xci`/`.xcz`)*.
-- ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)** installed locally.
+1. ***The Legend of Zelda: Tears of the Kingdom* base dump**: `.xci`, `.nsp`, `.xcz`, or `.nsz`
+2. ***Tears of the Kingdom* v1.2.1 update**: `.nsp` or `.nsz` *(must be **v1.2.1** specifically)*
+3. **`prod.keys`**: Automatically detected if already at `~/Library/Application Support/Ryujinx/system/prod.keys`
+4. **Switch firmware** *(only needed if your base dump is `.nsp` or `.nsz`, optional for `.xci`/`.xcz`)*: `.zip` archive or unpacked NCA folder
+5. ***Minecraft: Java Edition* (`1.21+`, including `1.21.x` and `26.x+`)**: Installed via the Minecraft Launcher and **launched at least once** so textures, sounds, and language assets exist under `~/Library/Application Support/minecraft` *(or if you use Prism / another custom launcher, you can point directly to the client `.jar` during setup)*
 
 ---
 
 ## Setup & Usage (macOS)
 
-The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI require **TOTK v1.2.1** (`TOTK_GAME_V121=1`). *(For Windows x86-64 / Vulkan builds and the `TotK-Setup` GUI installer, see the [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) branch.)*
+### Option A: Double-Click Guided Setup (Recommended)
 
-First, clone the repository:
-```bash
-git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
-cd TOTK-minecraft-overlay
-```
-
-### Option A: Double-click Guided Setup (Finder)
-
-1. In Finder, double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) *(if macOS Gatekeeper warns on first launch, Right-click → **Open**)*.
-2. The script verifies Apple Silicon (`arm64`), macOS 26+, Xcode Command Line Tools, and Homebrew, then installs any missing Homebrew dependencies (`python3 scripts/setup_v121.py --install-deps`).
-3. Pick your TOTK base dump (`.xci`, `.nsp`, `.xcz`, or `.nsz`), **v1.2.1** update (`.nsp` or `.nsz`), `prod.keys` (auto-detected from `~/Library/Application Support/Ryujinx/system/prod.keys` when present), optional Switch firmware (`.zip` or unpacked NCA folder, required when base is `.nsp`/`.nsz`), and optional Minecraft `1.21+` client JAR (or auto-detect `~/Library/Application Support/minecraft`) via native Finder dialogs.
-4. Optionally enable startup shader seed pre-compilation (`--prepare-shaders`) and standalone `.app` bundle creation (`--build-app`, enabled by default).
-5. When setup completes, Finder reveals `build/TOTK Minecraft Overlay.app` — double-click it to play. *(Launching the `.app` stores saves and shader caches under `~/Library/Application Support/MacNativeGames/TOTK/`.)*
+1. **Get the files**: Download and unzip `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) *(or `git clone https://github.com/PDT88/TOTK-minecraft-overlay.git`)*.
+2. **Start the guided setup**: Open the unpacked folder in Finder and double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command).
+   - *If macOS Gatekeeper blocks it on first launch*, open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine .` inside the folder in Terminal, then double-click again).
+3. **Install dependencies**: The script checks Apple Silicon, macOS 26+, Xcode CLT, and Homebrew, then automatically installs any missing Homebrew packages via `python3 scripts/setup_v121.py --install-deps`.
+4. **Pick your files using the Finder dialogs**:
+   - **TOTK Base ROM**: select your `.xci`, `.nsp`, `.xcz`, or `.nsz` file
+   - **TOTK v1.2.1 Update**: select your `.nsp` or `.nsz` v1.2.1 update file
+   - **`prod.keys`**: confirm the auto-detected Ryujinx `prod.keys` or browse to yours
+   - **Switch Firmware**: pick a firmware `.zip` or unpacked NCA folder *(required for `.nsp`/`.nsz` base; click **Skip** if using an `.xci`/`.xcz` with an update partition)*
+   - **Minecraft Assets**: keep **Auto-Detect** for `~/Library/Application Support/minecraft`, or click **Choose JAR...** to pick a specific `1.21+` client `.jar`
+   - **Shader Pre-compilation** *(optional)*: click **Yes** to pre-compile startup shaders (`--prepare-shaders`) for smoother initial gameplay, or **No** for a faster first-time setup
+   - **App Bundle**: keep **Yes** (default) to build a standalone `build/TOTK Minecraft Overlay.app`
+5. **Wait ~10–20 minutes** on first setup while game files are extracted, rewritten/verified, and compiled in Terminal. *(If anything stops mid-way, just run it again—completed stages are automatically skipped.)*
+6. **Play**: When finished, Finder opens `build/TOTK Minecraft Overlay.app` — double-click it to launch!
+   - Packaging uses APFS copy-on-write cloning so `.app` creation adds minimal extra disk space, and dragging `TOTK Minecraft Overlay.app` into `/Applications` on the same APFS volume stays space-efficient.
+   - Saves, profile data, and shader caches are stored under `~/Library/Application Support/MacNativeGames/TOTK/`.
 
 ### Option B: Terminal / Makefile
 
-1. **Install Homebrew dependencies and check prerequisites:**
+1. **Clone the repository and install dependencies:**
    ```bash
+   git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
+   cd TOTK-minecraft-overlay
    make install-deps
    python3 scripts/setup_v121.py --check-only
    ```
@@ -90,7 +91,7 @@ cd TOTK-minecraft-overlay
      UPDATE_NSP=/path/to/totk_update_1.2.1.nsp \
      KEYS=/path/to/prod.keys
    ```
-   To also pre-compile the startup shader seed (`build/shader-seed`) and package the standalone `.app` bundle in one pass, add `PREPARE_SHADERS=1` and `BUILD_APP=1`:
+   To also pre-compile startup shaders (`build/shader-seed`) and package `build/TOTK Minecraft Overlay.app` in one pass, add `PREPARE_SHADERS=1` and `BUILD_APP=1`:
    ```bash
    make setup-v121 \
      BASE_ROM=/path/to/totk_base.xcz \
@@ -103,12 +104,12 @@ cd TOTK-minecraft-overlay
 
    [`scripts/setup_v121.py`](scripts/setup_v121.py) automatically creates `.venv` (Python 3.14+), builds patched `hactool` under `tooling/hactool/` if missing, decompresses `.xcz`/`.nsz` dumps in a temporary directory, extracts TOTK v1.2.1 ExeFS/RomFS/shared fonts, prepares v1.2.1 module ELF inventories, builds v1.2.1 RomFS overlays, rewrites & verifies NSOs, auto-discovers your newest Minecraft: Java Edition `1.21+` / `26.x+` installation to populate `assets/mc/`, stages `prebuilt/macos-arm64/totk_xlate` + `spirv-cross` into `build/`, and builds `build/totk-native-v121` (`make runtime-v121`). *(Run `python3 scripts/setup_v121.py --help` for all flags.)*
 
-3. **Package `.app` bundle (if not already built above) and launch:**
+3. **Package `.app` bundle (if not built above) and launch:**
    ```bash
    make app-v121
    open "build/TOTK Minecraft Overlay.app"
    ```
-   *(Or run directly from the terminal without packaging using `make run-v121`, which stores saves and `minecraft-base.v1` in `user-data/` by default — override with `PROFILE_DIR=/path/to/profile`. `make app-v121` invokes [`scripts/build_app_v121.py`](scripts/build_app_v121.py) using APFS copy-on-write clones and accepts optional `APP_OUT=...`, `BASE_ROM=...`, and `KEYS=...` for `AppIcon.icns` extraction.)*
+   *(Or run directly from the terminal without packaging using `make run-v121`, which stores saves and `minecraft-base.v1` in `user-data/` by default — override with `PROFILE_DIR=/path/to/profile`. `make app-v121` invokes [`scripts/build_app_v121.py`](scripts/build_app_v121.py) and accepts optional `APP_OUT=...`, `BASE_ROM=...`, and `KEYS=...` for `AppIcon.icns` extraction.)*
 
 ---
 
@@ -128,6 +129,45 @@ cd TOTK-minecraft-overlay
 | `Q` (`Shift+Q`) | Drop 1 item (or full stack) |
 | `N` | Spawn a Minecraft mob nearby |
 | `Cmd + ,` | Open **Minecraft Settings** (FOV, 3rd-person distance, sensitivity, mob spawns, GUI/hand scale, shaders) |
+
+---
+
+## Troubleshooting (macOS)
+
+- **"Apple could not verify `Setup TOTK Minecraft Overlay.command`" (Gatekeeper)**: Open **System Settings → Privacy & Security**, click **Open Anyway**, and run it again (or run `xattr -dr com.apple.quarantine .` in Terminal inside the unpacked folder).
+- **ExeFS / RomFS mismatch or missing v1.2.1 error**: Make sure the update file is specifically **TOTK v1.2.1** (`--update`) and matches your base dump (`--base`) + `prod.keys`.
+- **Minecraft assets not found**: Launch Minecraft: Java Edition `1.21+` at least once so the official launcher downloads `assets/indexes`, `assets/objects`, and the version `.jar`, or choose your custom launcher's `.jar` (with `MC_DIR` / **Choose JAR...**).
+- **Setup was interrupted mid-way**: Re-run [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) or `make setup-v121` — already-verified stages are skipped automatically. Run `python3 scripts/setup_v121.py --check-only` to see which stages are done.
+- **Where are saves and logs?**: `.app` launches store saves and shader caches in `~/Library/Application Support/MacNativeGames/TOTK/` and write runtime logs to `~/Library/Logs/MacNativeGames/totk.log`.
+
+---
+
+## Features
+
+- **Seamless Mode & Camera Switching**: Toggle between **Minecraft Mode** and **Zelda Mode** on the fly, with first-person, third-person back, and third-person front views, mouse-look camera capture, and automatic hiding/restoring of Link's 3D body and Zelda's native HUD.
+- **Depth-Tested 3D World in Hyrule**: Place and mine blocks (wood, stone, obsidian, glass, torches, water, lava, crafting tables, furnaces, beds, TNT, and more) directly in Hyrule, depth-tested against Hyrule's G-buffer depth and terrain raycasts so blocks, mobs, dropped items, projectiles, and particles occlude naturally behind hills and walls.
+- **First-Person Viewmodel**: Dedicated depth-buffered 1st-person arm, held items, tools, weapons, bows, and shields that never clip into nearby Hyrule geometry.
+- **Live Combat, Mobs & Physics Bridge**:
+  - Syncs Link's position, velocity, HP (quarter-hearts), and stamina with TOTK's guest state.
+  - Attacks from Minecraft swords, axes, bows, arrows, and primed TNT damage active TOTK enemies; incoming damage to Link flows through Minecraft armor, directional shield blocking, and Totem of Undying.
+  - Spawns Minecraft mobs with AI, animations, and Hyrule terrain/wall-sweep collision.
+- **Full Minecraft HUD & Menus**: Crisp nearest-neighbor 2D HUD (hotbar, hearts, hunger, armor, XP bar, crosshair + attack cooldown indicator, status effects), Survival inventory with live 3D paperdoll preview, 3x3 Crafting Table, Furnace smelting, Creative tabbed inventory, tooltips, and chat/debug commands.
+- **Authentic Assets & 48 kHz Audio**: Extracts textures, fonts, `en_us.json`, and 48 kHz PCM WAVs directly from any local Minecraft: Java Edition `1.21+` installation (including `1.21.x` and `26.x+` releases) and mixes footsteps, digging, combat, eating, TNT, fireworks, XP, and hurt SFX into the runtime audio stream.
+
+---
+
+## Architecture (macOS / Metal 4)
+
+The TOTK bridge (`runtime/mc_totk_bridge.c`), camera hooks, and Minecraft Settings UI target **TOTK v1.2.1** (`TOTK_GAME_V121=1`):
+
+| Component | Files | Purpose |
+| :--- | :--- | :--- |
+| **Overlay Controller** | [`runtime/minecraft_overlay.h`](runtime/minecraft_overlay.h), [`runtime/minecraft_overlay.c`](runtime/minecraft_overlay.c) | Entrypoints for lifecycle, input/mouse capture, chat/debug commands, and frame coordination. |
+| **Core Simulation** | [`runtime/mc_engine.h`](runtime/mc_engine.h), [`runtime/mc_engine.c`](runtime/mc_engine.c), [`runtime/mc_snapshot.h`](runtime/mc_snapshot.h) | Voxel blocks, mobs, primed TNT, dropped items, projectiles, particles, crafting/smelting, HUD layout, and thread-safe POD `McRenderSnapshot` emission. |
+| **TOTK Runtime Bridge** | [`runtime/mc_totk_bridge.h`](runtime/mc_totk_bridge.h), [`runtime/mc_totk_bridge.c`](runtime/mc_totk_bridge.c) | Reads/writes Link's pose, HP, stamina, camera matrix, terrain raycasts, wall-sweep collision, active actors/enemies, and incoming damage on the guest frame thread. |
+| **Metal Renderer** | [`runtime/mc_metal_render.h`](runtime/mc_metal_render.h), [`runtime/mc_metal_render.m`](runtime/mc_metal_render.m) | Multi-pass Metal rendering: 3D world depth-tested against Hyrule's G-buffer, 1st-person viewmodel, offscreen 3D inventory paperdoll, and nearest-neighbor 2D HUD/text. |
+| **Asset Loader & Extractor** | [`runtime/mc_assets.h`](runtime/mc_assets.h), [`runtime/mc_assets.c`](runtime/mc_assets.c), [`tools/extract_mc_assets.py`](tools/extract_mc_assets.py) | Auto-discovers installed Minecraft Java `1.21+` versions and extracts textures, glyph widths, `en_us.json`, and 48 kHz WAVs into `assets/mc/` (gitignored). |
+| **Audio Mixer** | [`runtime/mc_audio.h`](runtime/mc_audio.h), [`runtime/mc_audio.c`](runtime/mc_audio.c), [`runtime/mc_link_audio_ids.inc`](runtime/mc_link_audio_ids.inc) | Mixes 48 kHz stereo float PCM Minecraft sound effects into the runtime audio stream. |
 
 ---
 
