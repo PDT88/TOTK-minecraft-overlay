@@ -4,8 +4,8 @@ A **Minecraft-in-Hyrule** runtime overlay mod embedded directly into *The Legend
 
 | Platform | Branch | Renderer / Runtime | Easiest Way to Install |
 | :--- | :--- | :--- | :--- |
-| **macOS (Apple Silicon)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
-| **Windows (x86-64)** | [`windows`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
+| **Windows (x86-64)** | [`main`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main) | Vulkan / `totk-pc-recomp` | Download `TOTK-minecraft-overlay-windows-setup.zip` from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `TotK-Setup.exe` |
+| **macOS (Apple Silicon)** | [`macos`](https://github.com/PDT88/TOTK-minecraft-overlay/tree/macos) | Metal 4 / `totk-native` | Download macOS source ZIP from [Releases](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) and run `Setup TOTK Minecraft Overlay.command` |
 
 Rather than replacing Link's model with a static skin, this mod embeds a live Minecraft voxel, entity, inventory, HUD, and audio engine inside the running TOTK process—letting you build, fight, craft, and explore Hyrule with Minecraft mechanics synchronized in real time with Zelda's world, physics, and combat.
 
@@ -15,8 +15,8 @@ Rather than replacing Link's model with a static skin, this mod embeds a live Mi
 
 ## Quick Start
 
-- **On macOS?** Download `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) (or clone `main`), install Xcode Command Line Tools + Homebrew once, then double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) to build **`TOTK Minecraft Overlay.app`**. Jump to [**Setup & Usage (macOS)**](#setup--usage-macos).
-- **On Windows?** Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest), unzip it, and run `TotK-Setup.exe` (no build toolchain required). See the [**Windows README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/windows#setup--building-windows).
+- **On macOS?** Download `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) (or clone `macos`), install Xcode Command Line Tools + Homebrew once, then double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command) to build **`TOTK Minecraft Overlay.app`**. Jump to [**Setup & Usage (macOS)**](#setup--usage-macos).
+- **On Windows?** Download `TOTK-minecraft-overlay-windows-setup.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest), unzip it, and run `TotK-Setup.exe` (no build toolchain required). See the [**Windows README**](https://github.com/PDT88/TOTK-minecraft-overlay/tree/main#setup--building-windows).
 
 ---
 
@@ -52,7 +52,7 @@ Have these legal files ready on your Mac before starting:
 
 ### Option A: Double-Click Guided Setup (Recommended)
 
-1. **Get the files**: Download and unzip `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) *(or `git clone https://github.com/PDT88/TOTK-minecraft-overlay.git`)*.
+1. **Get the files**: Download and unzip `TOTK-minecraft-overlay-v1.0.0-macos-source.zip` from [**GitHub Releases**](https://github.com/PDT88/TOTK-minecraft-overlay/releases/latest) *(or `git clone -b macos https://github.com/PDT88/TOTK-minecraft-overlay.git`)*.
 2. **Start the guided setup**: Open the unpacked folder in Finder and double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command).
    - *If macOS Gatekeeper blocks it on first launch*, open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine .` inside the folder in Terminal, then double-click again).
 3. **Install dependencies**: The script checks Apple Silicon, macOS 26+, Xcode CLT, and Homebrew, then automatically installs any missing Homebrew packages via `python3 scripts/setup_v121.py --install-deps`.
@@ -73,7 +73,7 @@ Have these legal files ready on your Mac before starting:
 
 1. **Clone the repository and install dependencies:**
    ```bash
-   git clone https://github.com/PDT88/TOTK-minecraft-overlay.git
+   git clone -b macos https://github.com/PDT88/TOTK-minecraft-overlay.git
    cd TOTK-minecraft-overlay
    make install-deps
    python3 scripts/setup_v121.py --check-only
