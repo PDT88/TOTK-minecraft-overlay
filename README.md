@@ -56,14 +56,7 @@ Have these legal files ready on your Mac before starting:
 2. **Start the guided setup**: Open the unpacked folder in Finder and double-click [`Setup TOTK Minecraft Overlay.command`](Setup%20TOTK%20Minecraft%20Overlay.command).
    - *If macOS Gatekeeper blocks it on first launch*, open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine .` inside the folder in Terminal, then double-click again).
 3. **Install dependencies**: The script checks Apple Silicon, macOS 26+, Xcode CLT, and Homebrew, then automatically installs any missing Homebrew packages via `python3 scripts/setup_v121.py --install-deps`.
-4. **Pick your files using the Finder dialogs**:
-   - **TOTK Base ROM**: select your `.xci`, `.nsp`, `.xcz`, or `.nsz` file
-   - **TOTK v1.2.1 Update**: select your `.nsp` or `.nsz` v1.2.1 update file
-   - **`prod.keys`**: confirm the auto-detected Ryujinx `prod.keys` or browse to yours
-   - **Switch Firmware**: pick a firmware `.zip` or unpacked NCA folder *(required for `.nsp`/`.nsz` base; click **Skip** if using an `.xci`/`.xcz` with an update partition)*
-   - **Minecraft Assets**: keep **Auto-Detect** for `~/Library/Application Support/minecraft`, or click **Choose JAR...** to pick a specific `1.21+` client `.jar`
-   - **Shader Pre-compilation** *(optional)*: click **Yes** to pre-compile startup shaders (`--prepare-shaders`) for smoother initial gameplay, or **No** for a faster first-time setup
-   - **App Bundle**: keep **Yes** (default) to build a standalone `build/TOTK Minecraft Overlay.app`
+4. **Select your files when prompted**: Finder dialogs will ask you to pick the required files listed above (auto-detecting `prod.keys` and your local Minecraft installation when present) and ask whether to pre-compile startup shaders (optional — smoother first launch, slower setup) and package the standalone `.app` bundle (keep **Yes**).
 5. **Wait ~10–20 minutes** on first setup while game files are extracted, rewritten/verified, and compiled in Terminal. *(If anything stops mid-way, just run it again—completed stages are automatically skipped.)*
 6. **Play**: When finished, Finder opens `build/TOTK Minecraft Overlay.app` — double-click it to launch!
    - Packaging uses APFS copy-on-write cloning so `.app` creation adds minimal extra disk space, and dragging `TOTK Minecraft Overlay.app` into `/Applications` on the same APFS volume stays space-efficient.
